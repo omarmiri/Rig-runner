@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Rig Runner: a robot platformer with dance battles, hybrid bosses and endless generated levels.">
+<title>Rig Runner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&display=swap">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game" aria-label="Rig Runner game"></canvas>
+
+<div class="hud">
+  <div class="stat" id="hudLvlBox" hidden><span class="lbl">Level</span><span class="val lvl" id="hudLvl">1</span></div>
+  <div class="stat"><span class="lbl">Robot</span><span class="val" id="hudBot">Runner</span></div>
+  <div class="stat"><span class="lbl">Bolts</span><span class="val bolts" id="hudBolts">0 / 0</span></div>
+  <div class="stat"><span class="lbl">Time</span><span class="val" id="hudTime">0.00</span></div>
+  <div class="stat" id="hudArmorBox" hidden><span class="lbl">Armor</span><span class="val armor" id="hudArmor">1</span></div>
+  <div class="spacer"></div>
+  <div class="keys">←/→ run · Space jump · ↓ drop · R restart · Esc menu · M sound</div>
+</div>
+
+<div class="panel" id="panel">
+  <div class="card" id="titleCard">
+    <span class="eyebrow" id="titleEyebrow">Assembly bay · Night shift</span>
+    <h1>Rig Runner</h1>
+    <ol class="steps" id="stepDots" aria-label="Setup"><li data-s="1">1 · Mode</li><li data-s="2">2 · Robot</li><li data-s="3">3 · Start</li></ol>
+    <section class="step" data-step="1">
+    <div class="modes" role="group" aria-label="Game mode">
+      <button class="mode" type="button" data-mode="dance" aria-pressed="false"><b>Dance battle</b><span>11 levels · hybrid bosses · electro beats</span></button>
+      <button class="mode" type="button" data-mode="course" aria-pressed="false"><b>Free run</b><span>5 courses · no rivals</span></button>
+    </div>
+    <div class="modes" role="group" aria-label="Length">
+      <button class="mode" type="button" data-len="campaign" aria-pressed="true"><b>Campaign</b><span>Set levels with an ending</span></button>
+      <button class="mode" type="button" data-len="endless" aria-pressed="false"><b>Endless</b><span>New levels forever · bosses grow</span></button>
+    </div>
+    <p id="modeText"></p>
+    </section>
+    <section class="step" data-step="2">
+    <div class="picker-h"><span>Choose your robot</span><span class="keyhint">← → to switch</span></div>
+    <div class="picker" id="picker" role="group" aria-label="Robot"></div>
+    <div class="spec">
+      <div class="bars" id="bars"></div>
+      <div class="ability" id="ability"></div>
+    </div>
+    </section>
+    <section class="step" data-step="3">
+    <p class="summary" id="summary"></p>
+    <dl id="controls"></dl>
+    <div class="actions"><button class="btn" id="continueBtn" type="button" hidden>Continue</button><button class="btn" id="startBtn" type="button">Start</button></div>
+    <p class="savenote" id="saveNote" hidden></p>
+    </section>
+    <div class="stepnav"><button class="btn ghost" id="backBtn" type="button">Back</button><button class="btn" id="nextBtn" type="button">Next</button></div>
+  </div>
+  <div class="card" id="winCard" hidden></div>
+</div>
+
+<div class="touch" id="touchRun">
+  <div class="grp">
+    <button type="button" data-k="left" aria-label="Run left">◀</button>
+    <button type="button" data-k="right" aria-label="Run right">▶</button>
+  </div>
+  <div class="grp">
+    <button type="button" data-k="down" aria-label="Drop down">▼</button>
+    <button type="button" class="jump" data-k="jump" aria-label="Jump">Jump</button>
+  </div>
+</div>
+<div class="touch" id="touchDance">
+  <div class="dpad">
+    <button type="button" data-m="left" aria-label="Windmill">◀</button>
+    <button type="button" data-m="up" aria-label="Head spin">▲</button>
+    <button type="button" data-m="down" aria-label="Backspin">▼</button>
+    <button type="button" data-m="right" aria-label="Air freeze">▶</button>
+  </div>
+  <div class="grp"><button type="button" class="act" data-m="act" aria-label="Flare">Flare</button></div>
+</div>
+
+<!-- classic scripts, loaded in order; they share one global scope -->
+<script src="js/characters.js"></script>
+<script src="js/poses.js"></script>
+<script src="js/rig.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/bosses.js"></script>
+<script src="js/generator.js"></script>
+<script src="js/solver.js"></script>
+<script src="js/endless.js"></script>
+<script src="js/physics.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/game.js"></script>
+<script src="js/menu.js"></script>
+<script src="js/effects.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/update.js"></script>
+<script src="js/render.js"></script>
+<script src="js/battle-ui.js"></script>
+<script src="js/render-frame.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

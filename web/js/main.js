@@ -1,0 +1,25 @@
+// Rig Runner · Main loop and startup.
+"use strict";
+let last = 0, stepAcc = 0;
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000 || 0); last = now;
+  stepAcc += dt; let n = 0;
+  while (stepAcc >= STEP && n < 6) { update(STEP); stepAcc -= STEP; n++; }
+  if (n === 6) stepAcc = 0;
+  render(Math.min(dt, 0.05)); updateHud();
+  if (state.mode === "title") drawPreviews(dt);
+  requestAnimationFrame(frame);
+}
+
+document.body.classList.add("menu");
+resize();
+Promise.all([hatReady, ...ORDER.map(k => loadChar(CHARS[k]))]).then(() => {
+  ORDER.forEach(k => calibrate(CHARS[k]));
+  setMode(state.gameMode);
+  pick(sel);
+  setStep(1);
+  requestAnimationFrame(t => { last = t; frame(t); });
+});
+window.__game = { dbg: { bipedBreak, spiderBreak, drawChar, bipedRun, bipedIdle, spiderGait, spiderAir, B_RISE, B_FALL, B_DANCE, dancePose, spiderDance }, state, pl, input, music,
+  get battle() { return battle; }, get rival() { return rival; }, get pose() { return pose; }, hintsCount: () => hints.length, rivalOff: () => { rival = null; battle = null; }, update, pressJump, startLevelForTest: () => startLevel(), startGame, continueGame, readSave, pick, setMode, setLen, showTitle, battleInput, CHARS, HYBRIDS, makeHybrid, genLevel, solveLevel, loadLevel, endlessLevel, endlessBossSpec, buildEndlessBoss, rng32, hashSeed, get levelDef() { return levelDef; }, FREE_LEVELS, DANCE_LEVELS, startLevel, get grid() { return grid; },
+  get ch() { return ch; }, get cam() { return [camX, camY, zoom]; } };
