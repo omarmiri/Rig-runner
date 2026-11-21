@@ -103,8 +103,13 @@ body.battling .hud .keys { visibility: hidden; }
 .touch button.jump { width: 68px; height: 68px; font-size: 13px; letter-spacing: 0.08em; border-color: var(--hazard); color: var(--hazard); }
 .touch button.act { width: 68px; height: 68px; font-size: 13px; letter-spacing: 0.08em; border-color: var(--pink); color: var(--pink); }
 .touch button.on { background: rgba(242, 162, 58, 0.3); }
-.touch .dpad { display: flex; gap: 8px; }
-.touch .dpad button { width: 54px; height: 54px; border-radius: 12px; border-color: var(--neon); color: var(--neon); }
+/* dance pad: a classic plus-shaped D-pad */
+.touch .dpad { display: grid; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 52px); gap: 4px; }
+.touch .dpad button { width: 52px; height: 52px; border-radius: 10px; border-color: var(--neon); color: var(--neon); }
+.touch .dpad [data-m="up"] { grid-column: 2; grid-row: 1; }
+.touch .dpad [data-m="left"] { grid-column: 1; grid-row: 2; }
+.touch .dpad [data-m="right"] { grid-column: 3; grid-row: 2; }
+.touch .dpad [data-m="down"] { grid-column: 2; grid-row: 3; }
 #touchDance { display: none; }
 @media (pointer: coarse) {
   #touchRun { display: flex; } .hud .keys { display: none; }
