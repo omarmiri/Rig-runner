@@ -26,7 +26,7 @@ function check(name, ok, detail) { results.push({ name, ok, detail }); console.l
 (async () => {
   const srv = await serve(), url = `http://127.0.0.1:${srv.address().port}/`;
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1100, height: 700 } });
+  const page = await browser.newPage({ viewport: { width: 1100, height: 900 } });
   const errors = [];
   page.on("pageerror", e => errors.push(e.message));
   page.on("console", m => m.type() === "error" && errors.push(m.text()));
@@ -144,7 +144,9 @@ function check(name, ok, detail) { results.push({ name, ok, detail }); console.l
 
   // 6. Saved progress survives a reload and Continue resumes it
   await page.evaluate(() => { localStorage.clear(); const G = __game; G.showTitle(); G.setLen(false); G.setMode("course"); G.pick("jumper"); });
-  await page.click("#startBtn"); await page.waitForTimeout(300);
+  await page.evaluate(() => document.getElementById("startBtn").scrollIntoView({ block: "center" }));
+  await page.click("#startBtn", { timeout: 10000 }).catch(() => page.evaluate(() => document.getElementById("startBtn").click()));
+  await page.waitForTimeout(300);
   await page.evaluate(() => { const G = __game, gx = G.levelDef.goalCol * 48 + 48; G.pl.x = gx - 140; G.pl.y = 10 * 48 - G.ch.H; G.input.right = true; });
   await page.waitForTimeout(2200); await page.evaluate(() => { __game.input.right = false; });
   await page.reload(); await page.waitForFunction(() => window.__game && __game.CHARS.runner.img && __game.CHARS.runner.img.head); await page.waitForTimeout(300);

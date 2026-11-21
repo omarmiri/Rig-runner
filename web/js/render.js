@@ -15,6 +15,15 @@ function resize() {
   viewW = innerWidth / zoom; viewH = innerHeight / zoom;
 }
 addEventListener("resize", resize);
+// iOS (especially a Home Screen app at launch or after rotating) can report its size late, so
+// listen to every signal, and also compare against the real size every frame (see main.js).
+addEventListener("orientationchange", () => { resize(); setTimeout(resize, 300); });
+addEventListener("pageshow", resize);
+if (window.visualViewport) visualViewport.addEventListener("resize", resize);
+function sizeChanged() {
+  const d = Math.min(2, window.devicePixelRatio || 1);
+  return canvas.width !== Math.round(innerWidth * d) || canvas.height !== Math.round(innerHeight * d);
+}
 
 function rand(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
 const farBlocks = (() => { const r = rand(7), out = []; let x = -200; while (x < 6000) { const w = 60 + r() * 140, h = 80 + r() * 220; out.push({ x, w, h, stack: r() < 0.35 ? 20 + r() * 90 : 0, lit: r() }); x += w + r() * 30; } return out; })();

@@ -34,17 +34,55 @@ addEventListener("keydown", e => {
   if (e.code === "KeyR" && !battle) restartLevel();
 });
 addEventListener("keyup", e => { const k = keymap[e.code]; if (k) input[k] = false; });
-addEventListener("blur", () => { for (const k in input) input[k] = false; pauseGame(); });
+addEventListener("blur", () => { for (const k in input) input[k] = false; touchHeld.clear(); pauseGame(); });
 function pressJump() { jumpPressedAt = state.time; audio.unlock(); }
+// ---------- touch controls ----------
+// Built on raw touch events. On every touch change we look at where ALL fingers are right now and
+// set the held buttons from that, so a button can never stay "stuck" (a missed lift, a pad hidden
+// under your finger), and you can slide a finger from one button to the next.
+// preventDefault on these events also stops iOS double-tap zoom and the delayed ghost click.
+const touchHeld = new Set();   // run-pad keys currently held by a finger
+function buttonsUnder(touches, padSel, attr) {
+  const out = new Map();
+  for (const t of touches) {
+    const el = document.elementFromPoint(t.clientX, t.clientY), b = el && el.closest(padSel + " button");
+    if (b) out.set(b.dataset[attr], b);
+  }
+  return out;
+}
+function syncRunPad(e) {
+  e.preventDefault();
+  const now = state.mode === "play" && !state.paused ? buttonsUnder(e.touches, "#touchRun", "k") : new Map();
+  for (const k of ["left", "right", "down", "jump"]) {
+    const held = now.has(k);
+    if (held && k === "jump" && !input.jump) pressJump();
+    if (held !== touchHeld.has(k)) { input[k] = held; held ? touchHeld.add(k) : touchHeld.delete(k); }
+  }
+  document.querySelectorAll("#touchRun button").forEach(b => b.classList.toggle("on", now.has(b.dataset.k)));
+}
+function releaseTouch() {
+  for (const k of touchHeld) input[k] = false;
+  touchHeld.clear();
+  document.querySelectorAll(".touch button.on").forEach(b => b.classList.remove("on"));
+}
+const runPad = document.getElementById("touchRun");
+for (const ev of ["touchstart", "touchmove", "touchend", "touchcancel"]) runPad.addEventListener(ev, syncRunPad, { passive: false });
+// dance pad: a move fires the moment a finger lands on it
+const dancePad = document.getElementById("touchDance");
+function syncDancePad(e) {
+  e.preventDefault();
+  if (e.type === "touchstart" && battle && battle.started && !state.paused)
+    for (const [m] of buttonsUnder(e.changedTouches, "#touchDance", "m")) battleInput(m);
+  const now = buttonsUnder(e.touches, "#touchDance", "m");
+  dancePad.querySelectorAll("button").forEach(b => b.classList.toggle("on", now.has(b.dataset.m)));
+}
+for (const ev of ["touchstart", "touchmove", "touchend", "touchcancel"]) dancePad.addEventListener(ev, syncDancePad, { passive: false });
+// mouse / pen fallback for the pads (desktop testing)
 document.querySelectorAll("#touchRun button").forEach(btn => {
   const k = btn.dataset.k;
-  const on = e => { e.preventDefault(); if (state.mode !== "play") return; if (k === "jump" && !input.jump) pressJump(); input[k] = true; btn.classList.add("on"); };
-  const off = e => { e.preventDefault(); input[k] = false; btn.classList.remove("on"); };
-  btn.addEventListener("pointerdown", on); btn.addEventListener("pointerup", off);
-  btn.addEventListener("pointercancel", off); btn.addEventListener("pointerleave", off);
+  btn.addEventListener("mousedown", e => { e.preventDefault(); if (state.mode !== "play") return; if (k === "jump" && !input.jump) pressJump(); input[k] = true; touchHeld.add(k); btn.classList.add("on"); });
 });
-document.querySelectorAll("#touchDance button").forEach(btn => {
-  btn.addEventListener("pointerdown", e => { e.preventDefault(); btn.classList.add("on"); if (battle && battle.started) battleInput(btn.dataset.m); });
-  const off = e => { e.preventDefault(); btn.classList.remove("on"); };
-  btn.addEventListener("pointerup", off); btn.addEventListener("pointercancel", off); btn.addEventListener("pointerleave", off);
-});
+document.querySelectorAll("#touchDance button").forEach(btn => btn.addEventListener("mousedown", e => { e.preventDefault(); if (battle && battle.started) battleInput(btn.dataset.m); }));
+addEventListener("mouseup", () => { if (touchHeld.size) releaseTouch(); });
+// no pinch or double-tap zoom anywhere in the game
+for (const ev of ["gesturestart", "gesturechange", "gestureend", "dblclick"]) document.addEventListener(ev, e => e.preventDefault(), { passive: false });

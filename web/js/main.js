@@ -3,6 +3,9 @@
 let last = 0, stepAcc = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000 || 0); last = now;
+  if (sizeChanged()) resize();
+  // pads hidden (menu, card, battle start) while a finger was on one: let go of everything
+  if (touchHeld.size && (document.body.classList.contains("menu") || document.body.classList.contains("battling"))) releaseTouch();
   stepAcc += dt; let n = 0;
   if (state.paused) stepAcc = 0;
   while (stepAcc >= STEP && n < 6) { update(STEP); stepAcc -= STEP; n++; }
@@ -13,6 +16,9 @@ function frame(now) {
 }
 
 document.body.classList.add("menu");
+// offline support and Home Screen install (only on a real site, not inside an embedded preview)
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost") && window.top === window.self)
+  addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 resize();
 Promise.all([hatReady, ...ORDER.map(k => loadChar(CHARS[k]))]).then(() => {
   ORDER.forEach(k => calibrate(CHARS[k]));

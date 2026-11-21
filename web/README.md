@@ -33,6 +33,9 @@ js/                  classic scripts sharing one global scope, loaded in this or
   main.js              main loop and startup
 assets/robots/<robot>/<part>.png   rig parts for runner, jumper, slim, tank, spider
 assets/accessories/cowboy-hat.png
+icons/               app and site icons (robot head)
+manifest.webmanifest Home Screen app description
+sw.js                service worker: offline play, app install
 tests/run.js         automated checks (see below)
 tools/build-single.py  packs everything into one self-contained HTML file
 ```
@@ -48,9 +51,18 @@ python3 -m http.server 8000      # then open http://localhost:8000
 
 ## Put it on miriogames.com
 
-Upload `index.html`, `css/`, `js/` and `assets/` together, keeping the folder structure. All paths are relative, so it works at the site root or in a subfolder such as `miriogames.com/rig-runner/`. `tests/`, `tools/` and `package.json` are for development and don't need to be uploaded.
+Upload `index.html`, `manifest.webmanifest`, `sw.js`, `css/`, `js/`, `assets/` and `icons/` together, keeping the folder structure. All paths are relative, so it works at the site root or in a subfolder such as `miriogames.com/rig-runner/`. `tests/`, `tools/` and `package.json` are for development and don't need to be uploaded.
 
 Any static host works (shared hosting, Netlify, Cloudflare Pages, S3). It needs no server code and no special configuration. Saved progress is kept in each player's browser (localStorage) and is separate for each site address.
+
+## Home Screen app (PWA)
+
+The game installs as an app. On iPhone: open the site in Safari → Share → **Add to Home Screen**. It then launches full screen with the robot-head icon and works offline after the first visit.
+
+- `manifest.webmanifest` and `icons/` describe the app (name, icons, full-screen display).
+- `sw.js` is the service worker that caches the game for offline play. **When you publish an update, change `VERSION` at the top of `sw.js`** so installed copies fetch the new files (they update on the next launch).
+- The site must be served over **https** for the app features to work (localhost is fine for testing).
+- If you change the list of scripts or assets, update the `SHELL` list in `sw.js` too.
 
 ## Tests
 

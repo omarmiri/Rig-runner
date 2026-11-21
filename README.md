@@ -13,3 +13,6 @@ A browser platformer starring robots built from rig parts: five playable robots,
 - On phones, on-screen buttons appear during play.
 
 Progress is saved in the browser (localStorage).
+
+## Home Screen app
+Both the `web/` site and this single-file build install as an app: open the page in Safari on iPhone → Share → **Add to Home Screen**. They launch full screen with the robot-head icon and work offline after the first visit. Change `VERSION` in `sw.js` (and `web/sw.js`) when publishing updates.
