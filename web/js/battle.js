@@ -47,6 +47,10 @@ function hook(spec) {
   } else b = phrase(n2, spec.eighths);
   return [...a, ...b.map(x => ({ off: x.off + spec.beats / 2, move: x.move }))];
 }
+// a written routine (a level's signature hook), with the same lead-in beat as generated ones
+function makeFixedRound(list, beats) {
+  return { beats: beats + 1, moves: list.map(([off, move]) => ({ off: off + 1, move, shown: false, sched: false, res: null })) };
+}
 function makeRound(spec, opts = {}) {
   const grid = [];
   for (let b = 0; b < spec.beats; b += spec.eighths ? 0.5 : 1) grid.push(b);
@@ -75,7 +79,8 @@ function startBattle() {
   if (skills.includes("double")) { const l = specs[specs.length - 1]; specs[specs.length - 1] = { beats: l.beats, n: Math.min(l.beats * 2 - 2, l.n + 3), eighths: true }; }
   B.skills = skills;
   for (const [ri, spec] of specs.entries()) {
-    const r = makeRound(spec, { fake: skills.includes("fake") && ri > 0, blackout: skills.includes("blackout") });
+    const sig = levelDef.signature && levelDef.signature.rounds[ri];
+    const r = sig ? makeFixedRound(sig, spec.beats) : makeRound(spec, { fake: skills.includes("fake") && ri > 0, blackout: skills.includes("blackout") });
     r.call = cur; r.count = cur + r.beats; r.resp = r.count + 4; cur = r.resp + r.beats + 4;
     B.max += r.moves.length * 2;
     B.rounds.push(r);

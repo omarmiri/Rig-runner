@@ -20,7 +20,8 @@
   <div class="stat"><span class="lbl">Time</span><span class="val" id="hudTime">0.00</span></div>
   <div class="stat" id="hudArmorBox" hidden><span class="lbl">Armor</span><span class="val armor" id="hudArmor">1</span></div>
   <div class="spacer"></div>
-  <div class="keys">←/→ run · Space jump · ↓ drop · R restart · Esc menu · M sound</div>
+  <div class="keys">←/→ run · Space jump · ↓ drop · R restart · Esc pause · M sound</div>
+  <button id="pauseBtn" type="button" title="Pause (Esc or P)" aria-label="Pause"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
 </div>
 
 <div class="panel" id="panel">
@@ -56,6 +57,16 @@
     <div class="stepnav"><button class="btn ghost" id="backBtn" type="button">Back</button><button class="btn" id="nextBtn" type="button">Next</button></div>
   </div>
   <div class="card" id="winCard" hidden></div>
+  <div class="card pause" id="pauseCard" hidden>
+    <span class="eyebrow" id="pauseWhere">Level 1</span>
+    <h1>Paused</h1>
+    <p id="pauseNote">Your progress in this level is kept while paused.</p>
+    <div class="actions pause-actions">
+      <button class="btn" id="resumeBtn" type="button">Resume</button>
+      <button class="btn ghost" id="restartBtn" type="button">Restart level</button>
+      <button class="btn danger" id="quitBtn" type="button">Quit to menu</button>
+    </div>
+  </div>
 </div>
 
 <div class="touch" id="touchRun">

@@ -19,7 +19,11 @@ addEventListener("keydown", e => {
     else if (e.code === "Enter" || e.code === "Space") { if (e.target.closest && e.target.closest("button")) return; e.preventDefault(); cardPrimary && cardPrimary(); }
     return;
   }
-  if (e.code === "Escape") { showTitle(); return; }
+  if (state.paused) {
+    if (e.code === "Escape" || e.code === "KeyP") { e.preventDefault(); resumeGame(); }
+    return;
+  }
+  if (e.code === "Escape" || e.code === "KeyP") { e.preventDefault(); pauseGame(); return; }
   if (battle && battle.started) {
     const m = dancemap[e.code];
     if (m) { e.preventDefault(); if (!e.repeat) battleInput(m); }
@@ -30,7 +34,7 @@ addEventListener("keydown", e => {
   if (e.code === "KeyR" && !battle) restartLevel();
 });
 addEventListener("keyup", e => { const k = keymap[e.code]; if (k) input[k] = false; });
-addEventListener("blur", () => { for (const k in input) input[k] = false; });
+addEventListener("blur", () => { for (const k in input) input[k] = false; pauseGame(); });
 function pressJump() { jumpPressedAt = state.time; audio.unlock(); }
 document.querySelectorAll("#touchRun button").forEach(btn => {
   const k = btn.dataset.k;

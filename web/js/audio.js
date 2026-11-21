@@ -99,6 +99,11 @@ const music = {
     if (st.bass[i] !== null) this.bass(t, ch.r + st.bass[i] - 12, I >= 2 ? 0.15 : 0.18);
     if (I >= 2) { if (i === 14 && bar % 2 === 1) this.hat(t, 0.1, 0.03); return; }   // a little fill before each new bar pair
     const s32 = step % 32;
+    const sig = typeof levelDef !== "undefined" && levelDef && levelDef.signature && state.gameMode === "dance";
+    if (sig) {   // signature level: the hook is the boss's motif, in the dance-move notes, every other bar
+      for (const [b, mv] of levelDef.signature.motif) if (s32 === b * 4) this.moveNote(t, mv, 0.11);
+      return;
+    }
     for (const [s, n] of st.hook) if (s === s32) this.lead(t, 69 + n, 0.07);
     if (st.gate && st.gate.includes(i)) this.stab(t, ch, 0.03);
   },
@@ -150,7 +155,11 @@ const music = {
   // so a good copy sounds like the hook answered back.
   move(tg, mv, v = 0.12, call = false) {
     if (!this.running()) return;
-    const t = this.toAudio(tg), dur = Math.min(0.32, this.beatLen() * 0.45);
+    this.moveNote(this.toAudio(tg), mv, v, call);
+  },
+  // the note for a dance move, at an audio-clock time
+  moveNote(t, mv, v, call = false) {
+    const dur = Math.min(0.32, this.beatLen() * 0.45);
     if (mv === "act") {   // "hey!": an A minor chord hit with a clap
       for (const n of [69, 72, 76]) this.lead(t, n, v * 0.55, dur * 0.8, call);
       this.noiseHit(t, "bandpass", 1800, v * 2.2, 0.12);

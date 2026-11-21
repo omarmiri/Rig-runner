@@ -4,6 +4,7 @@ let last = 0, stepAcc = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000 || 0); last = now;
   stepAcc += dt; let n = 0;
+  if (state.paused) stepAcc = 0;
   while (stepAcc >= STEP && n < 6) { update(STEP); stepAcc -= STEP; n++; }
   if (n === 6) stepAcc = 0;
   render(Math.min(dt, 0.05)); updateHud();

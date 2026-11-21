@@ -155,5 +155,26 @@ const DANCE_LEVELS = [
     [106, [r(4, 5, e), r(8, 8, e), r(8, 9, e)]],
   ];
   DANCE_LEVELS.forEach((d, i) => { d.bpm = plan[i][0]; d.rounds = plan[i][1]; });
+  // Signature hooks: fixed riffs you can learn. The level's platforming music plays the
+  // motif, the boss teases it when you arrive, and every round of the battle builds on it.
+  // Each entry is [beat, move] inside the round (the lead-in beat is added later).
+  DANCE_LEVELS[0].signature = {
+    name: "Stomp, stomp, stomp, jump",            // funk: three stomps on the root, then up
+    motif: [[0, "down"], [1, "down"], [2, "down"], [3, "up"]],
+    rounds: [
+      [[0, "down"], [1, "down"], [2, "down"]],
+      [[0, "down"], [1, "down"], [2, "down"], [3, "up"]],
+      [[0, "down"], [1, "down"], [2, "down"], [3, "up"], [6, "act"]],
+    ],
+  };
+  DANCE_LEVELS[1].signature = {
+    name: "Low, mid, high, mid",                   // trance: the bouncing arpeggio A-E-A-E
+    motif: [[0, "down"], [1, "right"], [2, "up"], [3, "right"]],
+    rounds: [
+      [[0, "down"], [1, "right"], [2, "up"], [3, "right"]],
+      [[0, "down"], [1, "right"], [2, "up"], [3, "right"], [6, "act"]],
+      [[0, "down"], [1, "right"], [2, "up"], [3, "right"], [4, "down"], [6, "act"]],
+    ],
+  };
 })();
 const levelList = () => state.gameMode === "dance" ? DANCE_LEVELS : FREE_LEVELS;

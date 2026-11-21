@@ -100,6 +100,17 @@ function animateRival(dt) {
   if (rival.defeated) target = rc.kind === "spider" ? spiderSlump(rc, state.time) : B_SLUMP;
   else if (battle && battle.outcome === "lose" && battle.b > battle.end + 0.5) target = rc.kind === "spider" ? spiderWin(rc, state.time) : B_WIN;
   else target = dancePose(rc, rival.dance, bi, battle ? battleClock() : music.now());
+  const sig = levelDef.signature;
+  if (sig && !battle && !rival.defeated && music.on && state.mode === "play") {
+    if (!rival.teaser && Math.abs(pl.x - rival.x) < 700) {   // dance the motif once, on the next bar
+      const t0 = music.nextBar(music.now(), 0.3), bl = music.beatLen();
+      rival.teaser = sig.motif.map(([b, mv]) => ({ t: t0 + b * bl, mv, sched: false, shown: false }));
+    }
+    for (const n of rival.teaser || []) {
+      if (!n.sched && n.t < music.now() + 0.15) { n.sched = true; music.move(n.t, n.mv, 0.4, true); }
+      if (!n.shown && music.now() - music.lat() >= n.t) { n.shown = true; rival.dance = { move: n.mv, at: music.now() }; }
+    }
+  }
   blendPose(rival.pose, target, 1 - Math.exp(-dt * (rival.defeated ? 6 : 30)));
   if (battle && !rival.shattered) breakSparks(rival.dance, rival.x, rival.y, battleClock(), dt);
   if (rival.shattered && debris.length && Math.random() < dt * 3) { const d = debris[Math.floor(Math.random() * debris.length)]; if (d.owner === "rival") burst(d.x, d.y, 3, "#5ee7ff", 90, 30); }

@@ -103,7 +103,36 @@ function startLevel() {
   else { music.stop(); if (state.endless) banner = { text: `Level ${state.levelIdx + 1} · ${levelDef.name}`, sub: "Endless free run", until: state.time + 2 }; }
   play();
 }
+// ---------- pause ----------
+const pauseCard = document.getElementById("pauseCard");
+function pauseGame() {
+  if (state.mode !== "play" || state.paused || state.finished) return;
+  state.paused = true; music.stop();
+  for (const k in input) input[k] = false;
+  document.getElementById("pauseWhere").textContent = `${state.endless ? "Endless · " : ""}Level ${state.levelIdx + 1} · ${levelDef.name}`;
+  document.getElementById("pauseNote").textContent = battle && battle.started && !battle.outcome
+    ? "The dance-off restarts from its countdown when you resume." : "Everything is frozen until you resume.";
+  titleCard.hidden = true; winCard.hidden = true; pauseCard.hidden = false; panel.hidden = false;
+  document.body.classList.add("menu");
+  document.getElementById("resumeBtn").focus({ preventScroll: true });
+}
+function closePause() { state.paused = false; pauseCard.hidden = true; panel.hidden = true; document.body.classList.remove("menu"); }
+function resumeGame() {
+  if (!state.paused) return;
+  closePause();
+  if (state.gameMode === "dance") {
+    music.intensity = battle ? 2 : 1; music.start(levelDef.bpm);
+    // the battle runs on the music clock, so a paused battle restarts from its countdown
+    if (battle && !battle.outcome) { battle = null; rival.dance = null; startBattle(); }
+  }
+}
+document.getElementById("pauseBtn").addEventListener("click", () => pauseGame());
+document.getElementById("resumeBtn").addEventListener("click", () => resumeGame());
+document.getElementById("restartBtn").addEventListener("click", () => { closePause(); startLevel(); });
+document.getElementById("quitBtn").addEventListener("click", () => { closePause(); showTitle(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) pauseGame(); });
 function showTitle() {
+  state.paused = false; pauseCard.hidden = true;
   state.mode = "title"; titleCard.hidden = false; winCard.hidden = true; panel.hidden = false; document.body.classList.add("menu");
   music.stop(); battle = null; document.body.classList.remove("battling");
   state.levelIdx = 0; restartLevel(); refreshContinue(); setStep(1);
