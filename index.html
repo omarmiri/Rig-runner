@@ -2152,7 +2152,7 @@ function drawRival() {
   }
   if (!battle && !rival.defeated) {
     const near = Math.abs(pl.x - rival.x) < 700;
-    if (near) bubble(rival.x, s.world.top - 14, `${rc.name}: "${rc.clone ? "Only one of us docks." : rc.taunt || "Dance-off for the dock!"}"`);
+    if (near) bubble(rival.x, s.world.top - 6, rc.name, `"${rc.clone ? "Only one of us docks." : rc.taunt || "Dance-off for the dock!"}"`, rc.color || (rc.clone ? "#ff3a4a" : "#ff5ec8"));
   }
 }
 function drawLasso(hx, hy, size, t, twirl, col, face) {
@@ -2170,13 +2170,22 @@ function drawLasso(hx, hy, size, t, twirl, col, face) {
   }
   ctx.restore();
 }
-function bubble(x, y, text) {
-  ctx.font = "700 13px 'Chakra Petch', sans-serif"; ctx.textAlign = "center";
-  const w = ctx.measureText(text).width + 18;
-  ctx.fillStyle = "rgba(12,21,30,0.88)"; ctx.strokeStyle = "#ff5ec8"; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.rect(x - w / 2, y - 26, w, 24); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(x - 6, y - 2); ctx.lineTo(x, y + 6); ctx.lineTo(x + 6, y - 2); ctx.fill();
-  ctx.fillStyle = "#e9eef2"; ctx.fillText(text, x, y - 9);
+// Speech bubble: speaker's name on top, the line underneath. Sized so the text is at least
+// 15px on screen however far the camera is zoomed out (phones zoom out a lot).
+function bubble(x, y, name, line, accent = "#ff5ec8") {
+  const fs = Math.max(19, 15 / zoom), pad = fs * 0.6, gap = fs * 0.35;
+  ctx.textAlign = "center";
+  ctx.font = `700 ${fs * 0.8}px 'Chakra Petch', sans-serif`; const wName = ctx.measureText(name).width;
+  ctx.font = `700 ${fs}px 'Chakra Petch', sans-serif`; const wLine = ctx.measureText(line).width;
+  const w = Math.max(wName, wLine) + pad * 2, h = fs * 0.8 + gap + fs + pad * 1.6;
+  // keep the bubble on screen; the pointer still marks the speaker
+  const bx = Math.max(camX + 8 + w / 2, Math.min(camX + viewW - 8 - w / 2, x)), top = y - h - 8;
+  ctx.fillStyle = "rgba(12,21,30,0.92)"; ctx.strokeStyle = accent; ctx.lineWidth = Math.max(2, 2 / zoom);
+  ctx.beginPath(); ctx.rect(bx - w / 2, top, w, h); ctx.fill(); ctx.stroke();
+  const px = Math.max(bx - w / 2 + 12, Math.min(bx + w / 2 - 12, x));
+  ctx.beginPath(); ctx.moveTo(px - 9, top + h - 1); ctx.lineTo(px, top + h + 9); ctx.lineTo(px + 9, top + h - 1); ctx.fill();
+  ctx.fillStyle = accent; ctx.font = `700 ${fs * 0.8}px 'Chakra Petch', sans-serif`; ctx.fillText(name.toUpperCase(), bx, top + pad * 0.8 + fs * 0.7);
+  ctx.fillStyle = "#e9eef2"; ctx.font = `700 ${fs}px 'Chakra Petch', sans-serif`; ctx.fillText(line, bx, top + pad * 0.8 + fs * 0.8 + gap + fs * 0.85);
 }
 
 function drawPlayer() {
