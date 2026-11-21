@@ -24,8 +24,22 @@ const audio = {
 
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 const PROG = [{ r: 45, tri: [0, 3, 7] }, { r: 41, tri: [0, 4, 7] }, { r: 48, tri: [0, 4, 7] }, { r: 43, tri: [0, 4, 7] }];
-const BASS = [0, null, 0, 12, null, 0, null, 12, 0, null, 0, 12, null, 7, null, 12];
-const MOVE_NOTE = { up: 81, right: 79, left: 76, down: 72, act: 0 };
+// Every dance move is a note of A minor pentatonic, so any routine is a melody:
+// down = A4, left = C5, right = E5, up = A5 (high), act = a "hey!" chord hit.
+const MOVE_NOTE = { down: 69, left: 72, right: 76, up: 81, act: 0 };
+// Song styles (all original). Each level uses one. bass: 16 steps of semitones above the chord root
+// (null = rest). hook: [step of 32, semitones above A4] played while platforming. gate: chord-stab steps.
+const STYLES = [
+  { name: "Funk", bass: [0, null, null, 0, null, null, 12, null, 0, null, 10, null, 12, null, 7, null],
+    hook: [[0, 0], [3, 3], [6, 0], [8, 5], [10, 3], [12, 0], [14, -2], [16, 0], [19, 3], [22, 0], [24, 7], [26, 5], [28, 3]], openHat: false },
+  { name: "Trance", bass: [null, null, 0, 0, null, null, 0, 0, null, null, 0, 0, null, null, 0, 0],
+    gate: [0, 3, 6, 10, 13], hook: [[0, 12], [6, 10], [12, 7], [16, 12], [22, 15], [28, 14]], openHat: true },
+  { name: "Disco", bass: [0, null, 12, null, 0, null, 12, null, 0, null, 12, null, 0, null, 12, 10],
+    hook: [[0, 12], [2, 7], [4, 12], [6, 10], [8, 7], [12, 3], [14, 5], [16, 12], [18, 7], [20, 12], [22, 15], [24, 14], [28, 10]], openHat: true },
+  { name: "Electro", bass: [0, null, null, 0, null, null, 0, null, 0, null, 0, null, null, 7, null, null],
+    hook: [[0, 0], [3, 0], [6, 7], [8, 5], [11, 3], [14, 0], [16, 0], [19, 0], [22, 10], [24, 7], [27, 5], [30, 3]], openHat: false },
+];
+const styleFor = idx => STYLES[((idx | 0) % STYLES.length + STYLES.length) % STYLES.length];
 const music = {
   on: false, bpm: 112, t0: 0, step: 0, timer: null, intensity: 1, bus: null, delay: null, noise: null, perf0: 0,
   off: null,
@@ -37,7 +51,11 @@ const music = {
   beatLen() { return 60 / this.bpm; },
   init() {
     const ctx = audio.ctx; if (!ctx || this.bus) return;
-    this.bus = ctx.createGain(); this.bus.gain.value = 0.55; this.bus.connect(audio.out);
+    // bus -> gentle compressor -> output, so loud dance notes never clip
+    this.bus = ctx.createGain(); this.bus.gain.value = 0.48;
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.15;
+    this.bus.connect(comp).connect(audio.out);
     this.delay = ctx.createDelay(1); const fb = ctx.createGain(), wet = ctx.createGain();
     fb.gain.value = 0.32; wet.gain.value = 0.28;
     this.delay.connect(fb).connect(this.delay); this.delay.connect(wet).connect(this.bus);
@@ -69,25 +87,26 @@ const music = {
       this.step++;
     }
   },
+  // One 16th-note step. Platforming (intensity 1) plays the full song with its hook.
+  // Battles (intensity 2) strip back to drums and bass, so the dance notes are the melody.
   play(step, t) {
-    const i = step % 16, bar = Math.floor(step / 16), ch = PROG[bar % 4], I = this.intensity, lvl = state.levelIdx;
-    if (i % 4 === 0) this.kick(t);
-    if (i === 4 || i === 12) this.clap(t, I >= 2 ? 0.5 : 0.3);
-    if (i % 2 === 1) this.hat(t, i % 4 === 2 ? 0.1 : 0.16, 0.05);
-    else if (I >= 2) this.hat(t, 0.06, 0.03);
-    if (BASS[i] !== null) this.bass(t, ch.r + BASS[i] - 12, I >= 2 ? 0.22 : 0.17);
-    if (I >= 2 || i % 2 === 0) {
-      const k = (i + bar * 3) % 6, note = ch.r + 24 + ch.tri[k % 3] + (k >= 3 ? 12 : 0);
-      this.arp(t, note, I >= 2 ? 0.05 : 0.03);
-    }
-    if (lvl >= 1 && I >= 2 && (i === 6 || i === 14)) this.stab(t, ch);
-    if (lvl >= 2 && i === 15 && bar % 2 === 1) this.zap(t, 0.08);
+    const i = step % 16, bar = Math.floor(step / 16), ch = PROG[bar % 4], I = this.intensity, st = styleFor(state.levelIdx);
+    if (i % 4 === 0) this.kick(t, I >= 2 ? 0.7 : 0.9);
+    // in battles the drums sit back so the dance melody is the loudest thing above the bass
+    if (i === 4 || i === 12) this.clap(t, I >= 2 ? 0.18 : 0.3);
+    if (st.openHat && i % 4 === 2) this.hat(t, I >= 2 ? 0.05 : 0.14, 0.1);
+    else if (i % 2 === 1) this.hat(t, I >= 2 ? 0.03 : 0.08, 0.04);
+    if (st.bass[i] !== null) this.bass(t, ch.r + st.bass[i] - 12, I >= 2 ? 0.15 : 0.18);
+    if (I >= 2) { if (i === 14 && bar % 2 === 1) this.hat(t, 0.1, 0.03); return; }   // a little fill before each new bar pair
+    const s32 = step % 32;
+    for (const [s, n] of st.hook) if (s === s32) this.lead(t, 69 + n, 0.07);
+    if (st.gate && st.gate.includes(i)) this.stab(t, ch, 0.03);
   },
   env(node, t, v, dur) { node.gain.setValueAtTime(v, t); node.gain.exponentialRampToValueAtTime(0.0001, t + dur); },
-  kick(t) {
+  kick(t, v = 0.9) {
     const ctx = audio.ctx, o = ctx.createOscillator(), g = ctx.createGain();
     o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12);
-    this.env(g, t, 0.9, 0.32); o.connect(g).connect(this.bus); o.start(t); o.stop(t + 0.34);
+    this.env(g, t, v, 0.32); o.connect(g).connect(this.bus); o.start(t); o.stop(t + 0.34);
   },
   noiseHit(t, type, freq, vol, dur) {
     const ctx = audio.ctx, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -107,25 +126,36 @@ const music = {
     o.type = "square"; o.frequency.value = mtof(m);
     this.env(g, t, v, 0.09); o.connect(g); g.connect(this.bus); g.connect(this.delay); o.start(t); o.stop(t + 0.11);
   },
-  stab(t, ch) {
+  stab(t, ch, v = 0.05) {
     for (const k of ch.tri) {
       const ctx = audio.ctx, o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = "sawtooth"; o.frequency.value = mtof(ch.r + 12 + k);
-      this.env(g, t, 0.05, 0.18); o.connect(g); g.connect(this.bus); g.connect(this.delay); o.start(t); o.stop(t + 0.2);
+      o.type = "sawtooth"; o.frequency.value = mtof(ch.r + 24 + k);
+      this.env(g, t, v, 0.16); o.connect(g); g.connect(this.bus); g.connect(this.delay); o.start(t); o.stop(t + 0.18);
     }
+  },
+  // a plucky lead note: square plus a detuned saw an octave below
+  lead(t, m, v, dur = 0.2, bright = false) {
+    const ctx = audio.ctx, o = ctx.createOscillator(), o2 = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    o.type = bright ? "sawtooth" : "square"; o2.type = "sawtooth"; o.frequency.value = mtof(m); o2.frequency.value = mtof(m - 12) * 1.004;
+    f.type = "lowpass"; f.frequency.setValueAtTime(bright ? 5200 : 3600, t); f.frequency.exponentialRampToValueAtTime(900, t + dur);
+    this.env(g, t, v, dur); o.connect(f); o2.connect(f); f.connect(g); g.connect(this.bus); g.connect(this.delay);
+    o.start(t); o2.start(t); o.stop(t + dur + 0.02); o2.stop(t + dur + 0.02);
   },
   zap(t, v) {
     const ctx = audio.ctx, o = ctx.createOscillator(), g = ctx.createGain();
     o.type = "sawtooth"; o.frequency.setValueAtTime(1800, t); o.frequency.exponentialRampToValueAtTime(90, t + 0.18);
     this.env(g, t, v, 0.2); o.connect(g).connect(this.bus); o.start(t); o.stop(t + 0.22);
   },
-  move(tg, mv, v = 0.12) {
+  // A dance move's sound. The boss's call is a brighter saw lead; your echo is a square lead,
+  // so a good copy sounds like the hook answered back.
+  move(tg, mv, v = 0.12, call = false) {
     if (!this.running()) return;
-    const t = this.toAudio(tg);
-    if (mv === "act") { this.zap(t, v); this.noiseHit(t, "bandpass", 3000, v * 0.8, 0.08); return; }
-    const ctx = audio.ctx, o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain();
-    o.type = "square"; o2.type = "sawtooth"; o.frequency.value = mtof(MOVE_NOTE[mv]); o2.frequency.value = mtof(MOVE_NOTE[mv] - 12) * 1.005;
-    this.env(g, t, v, 0.22); o.connect(g); o2.connect(g); g.connect(this.bus); g.connect(this.delay);
-    o.start(t); o2.start(t); o.stop(t + 0.24); o2.stop(t + 0.24);
+    const t = this.toAudio(tg), dur = Math.min(0.32, this.beatLen() * 0.45);
+    if (mv === "act") {   // "hey!": an A minor chord hit with a clap
+      for (const n of [69, 72, 76]) this.lead(t, n, v * 0.55, dur * 0.8, call);
+      this.noiseHit(t, "bandpass", 1800, v * 2.2, 0.12);
+      return;
+    }
+    this.lead(t, MOVE_NOTE[mv], v, dur, call);
   },
 };

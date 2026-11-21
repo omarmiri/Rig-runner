@@ -6,19 +6,52 @@ const MOVE_NAME = { up: "Head spin", down: "Backspin", left: "Windmill", right: 
 const MOVE_COLOR = { up: "#5ee7ff", down: "#ff5ec8", left: "#c6ff5e", right: "#ffb03a", act: "#ffffff", lasso: "#ff3a4a" };
 const WIN_GOOD = 0.17, WIN_PERFECT = 0.085, WIN_SEARCH = 0.26, PASS = 0.6;
 
+// Routines are written as hooks, not random moves: a catchy rhythm plus a melodic shape.
+// Moves map to notes low to high (down, left, right, up), so a shape is a little melody.
+// 8-beat routines state a phrase and then repeat it with a twist at the end, like a chorus.
+const RHYTHMS = {   // offsets in beats inside a 4-beat phrase, by number of notes
+  2: [[0, 2], [0, 3], [0, 1.5]],
+  3: [[0, 1, 2], [0, 1, 3], [0, 2, 3], [0, 1.5, 3], [0, 0.5, 2], [0, 2.5, 3], [0, 1.5, 2]],
+  4: [[0, 1, 2, 3], [0, 0.5, 1, 2], [0, 1, 1.5, 3], [0, 1.5, 2, 3], [0, 1, 2, 2.5], [0, 0.5, 2, 3], [0, 2, 2.5, 3], [0, 0.5, 1.5, 3]],
+  5: [[0, 0.5, 1, 2, 3], [0, 1, 1.5, 2, 3], [0, 1, 2, 2.5, 3], [0, 0.5, 1.5, 2, 3], [0, 1.5, 2, 2.5, 3], [0, 0.5, 1, 1.5, 3]],
+  6: [[0, 0.5, 1, 1.5, 2, 3], [0, 0.5, 1, 2, 2.5, 3], [0, 1, 1.5, 2, 2.5, 3], [0, 0.5, 1.5, 2, 2.5, 3]],
+};
+const SHAPES = {   // 0 = down (low) ... 3 = up (high)
+  2: [[0, 3], [3, 0], [0, 2], [1, 3]],
+  3: [[0, 0, 3], [0, 1, 2], [2, 1, 0], [0, 2, 3], [3, 1, 0], [0, 0, 2], [1, 2, 3]],
+  4: [[0, 0, 0, 3], [0, 1, 2, 3], [3, 2, 1, 0], [0, 2, 0, 3], [0, 0, 2, 1], [1, 1, 3, 2], [0, 3, 2, 0], [2, 2, 0, 3]],
+  5: [[0, 0, 0, 2, 3], [0, 1, 2, 1, 0], [0, 0, 3, 2, 0], [3, 3, 2, 1, 0], [0, 2, 0, 2, 3], [1, 1, 1, 0, 3]],
+  6: [[0, 0, 2, 0, 0, 3], [0, 1, 2, 3, 2, 1], [3, 2, 3, 1, 0, 0], [0, 0, 1, 1, 2, 3]],
+};
+const LEVEL_MOVE = ["down", "left", "right", "up"];
+const pickOf = a => a[Math.floor(Math.random() * a.length)];
+function phrase(k, eighths) {
+  k = Math.max(2, Math.min(6, k));
+  let pool = RHYTHMS[k].filter(r => eighths || r.every(o => o % 1 === 0));
+  if (!pool.length) pool = RHYTHMS[k];   // e.g. 5 notes in 4 beats needs eighths
+  const rhythm = pickOf(pool), shape = pickOf(SHAPES[k]);
+  const moves = shape.map(l => LEVEL_MOVE[l]);
+  if (Math.random() < 0.35) moves[moves.length - 1] = "act";   // end the phrase on a "hey!"
+  return rhythm.map((off, j) => ({ off, move: moves[j] }));
+}
+function hook(spec) {
+  if (spec.beats <= 4) return phrase(spec.n, spec.eighths);
+  const n1 = Math.ceil(spec.n / 2), n2 = spec.n - n1;
+  const a = phrase(n1, spec.eighths);
+  let b;
+  if (n2 === n1) {   // answer phrase: same rhythm and tune, new last note
+    b = a.map(x => ({ ...x }));
+    const last = b[b.length - 1];
+    const lv = LEVEL_MOVE.indexOf(last.move);
+    last.move = last.move === "act" ? "up" : Math.random() < 0.4 ? "act" : LEVEL_MOVE[(Math.max(0, lv) + 2) % 4];
+  } else b = phrase(n2, spec.eighths);
+  return [...a, ...b.map(x => ({ off: x.off + spec.beats / 2, move: x.move }))];
+}
 function makeRound(spec, opts = {}) {
   const grid = [];
   for (let b = 0; b < spec.beats; b += spec.eighths ? 0.5 : 1) grid.push(b);
-  const rest = grid.slice(1).sort(() => Math.random() - 0.5).slice(0, spec.n - 1);
-  const offs = [0, ...rest].sort((a, b) => a - b);
-  const moves = [];
-  for (const off of offs) {
-    let m;
-    do { m = MOVES[Math.floor(Math.random() * MOVES.length)]; }
-    while (moves.length >= 2 && moves[moves.length - 1].move === m && moves[moves.length - 2].move === m);
-    // +1: an empty lead-in beat, so the first move lands one beat after GO! instead of on it
-    moves.push({ off: off + 1, move: m, shown: false, sched: false, res: null });
-  }
+  // +1: an empty lead-in beat, so the first move lands one beat after GO! instead of on it
+  const moves = hook(spec).map(x => ({ off: x.off + 1, move: x.move, shown: false, sched: false, res: null }));
   const r = { beats: spec.beats + 1, moves };
   if (opts.fake) {
     // a decoy in a free slot: the boss dances it in red, and copying it costs you
@@ -71,12 +104,12 @@ function battleInput(move) {
     const d = now - (B.start + (r.resp + m.off) * bl);
     if (Math.abs(d) < WIN_SEARCH && Math.abs(d) < Math.abs(bd)) { best = m; bd = d; }
   }
-  if (!best) { music.move(music.now(), move, 0.05); return; }
+  if (!best) { music.move(music.now(), move, 0.18); return; }
   const ad = Math.abs(bd);
   if (best.decoy) { best.res = "miss"; pop(hx, hy, "FAKED OUT", "#ff5e6c"); audio.blip(140, 70, 0.15, "sawtooth", 0.08); return; }
   if (best.move !== move) { best.res = "miss"; pop(hx, hy, "WRONG", "#ff5e6c"); audio.blip(140, 70, 0.15, "sawtooth", 0.08); }
-  else if (ad <= WIN_PERFECT) { best.res = "perfect"; B.score += 2; pop(hx, hy, "PERFECT", "#6fe0a0", 22); music.move(music.now(), move, 0.12); burst(hx, hy + 10, 10, MOVE_COLOR[move], 180, 40); }
-  else if (ad <= WIN_GOOD) { best.res = "good"; B.score += 1; pop(hx, hy, bd < 0 ? "GOOD · EARLY" : "GOOD · LATE", "#ffe08a"); music.move(music.now(), move, 0.09); }
+  else if (ad <= WIN_PERFECT) { best.res = "perfect"; B.score += 2; pop(hx, hy, "PERFECT", "#6fe0a0", 22); music.move(music.now(), move, 0.5); burst(hx, hy + 10, 10, MOVE_COLOR[move], 180, 40); }
+  else if (ad <= WIN_GOOD) { best.res = "good"; B.score += 1; pop(hx, hy, bd < 0 ? "GOOD · EARLY" : "GOOD · LATE", "#ffe08a"); music.move(music.now(), move, 0.38); }
   else { best.res = "miss"; pop(hx, hy, bd < 0 ? "TOO EARLY" : "TOO LATE", "#ff5e6c"); audio.blip(140, 70, 0.15, "sawtooth", 0.06); }
 }
 function updateBattle(dt) {
@@ -102,7 +135,7 @@ function updateBattle(dt) {
   }
   for (const r of B.rounds) for (const m of r.moves) {
     const tc = B.start + (r.call + m.off) * bl;
-    if (!m.sched && tc < anow + 0.15) { m.sched = true; if (tc > anow - 0.03) { if (m.decoy) { if (music.running()) audio.blip(240, 120, 0.2, "sawtooth", 0.08, music.toAudio(tc)); } else music.move(tc, m.move, 0.11); } }
+    if (!m.sched && tc < anow + 0.15) { m.sched = true; if (tc > anow - 0.03) { if (m.decoy) { if (music.running()) audio.blip(240, 120, 0.2, "sawtooth", 0.08, music.toAudio(tc)); } else music.move(tc, m.move, 0.55, true); } }
     if (!m.shown && now >= tc) {
       m.shown = true; rival.dance = { move: m.move, at: tc };
       if (m.decoy) pop(rival.x, rival.y - rival.ch.height - 20, "FAKE", "#ff5e6c", 18);
