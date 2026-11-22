@@ -40,6 +40,21 @@ img { max-width: 100%; }
   color-scheme: dark;
 }
 [hidden] { display: none !important; }
+/* home screen: title on top, the stage (drawn on the canvas) in the middle, start at the bottom */
+.home { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 4vh) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 3vh) max(16px, env(safe-area-inset-left, 0px)); pointer-events: auto; }
+.home-top { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.home-eyebrow { font-size: 13px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--neon); }
+.home-title { margin: 0; font-size: clamp(46px, 11vw, 120px); line-height: 0.9; letter-spacing: 0.02em; text-transform: uppercase; color: var(--ink);
+  text-shadow: 0 0 18px rgba(94, 231, 255, 0.55), 0 0 42px rgba(255, 94, 200, 0.35); }
+.home-bottom { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.home-start { font: inherit; font-weight: 700; font-size: clamp(16px, 2.2vw, 21px); letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; min-width: 18rem; max-width: 100%;
+  padding: 16px 22px; color: var(--night); background: var(--hazard); border: 0; cursor: pointer; box-shadow: 0 0 24px rgba(242, 162, 58, 0.45); animation: startpulse 1.15s ease-in-out infinite; }
+.home-start:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+@keyframes startpulse { 50% { transform: scale(1.04); box-shadow: 0 0 36px rgba(242, 162, 58, 0.7); } }
+.home-note { margin: 0; font-size: 13px; color: var(--steel); }
+@media (max-height: 540px) { .home { padding-top: calc(env(safe-area-inset-top, 0px) + 10px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); } .home-title { font-size: clamp(38px, 9vh, 72px); } }
+@media (prefers-reduced-motion: reduce) { .home-start { animation: none; } }
 html, body { height: 100%; }
 body { background: var(--night); color: var(--ink); overflow: hidden; font-family: var(--f-display); touch-action: none; user-select: none; -webkit-user-select: none; }
 #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
@@ -176,6 +191,17 @@ body.menu .touch { display: none !important; }
   <div class="spacer"></div>
   <div class="keys">←/→ run · Space jump · ↓ drop · R restart · Esc pause · M sound</div>
   <button id="pauseBtn" type="button" title="Pause (Esc or P)" aria-label="Pause"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+</div>
+
+<div class="home" id="home" hidden>
+  <div class="home-top">
+    <span class="home-eyebrow">Dance battles · robot platformer</span>
+    <h1 class="home-title">Rig Runner</h1>
+  </div>
+  <div class="home-bottom">
+    <button class="home-start" id="homeStart" type="button">Press here to start</button>
+    <p class="home-note" id="homeNote"></p>
+  </div>
 </div>
 
 <div class="panel" id="panel">
@@ -1288,7 +1314,7 @@ const music = {
   // One 16th-note step. Platforming (intensity 1) plays the full song with its hook.
   // Battles (intensity 2) strip back to drums and bass, so the dance notes are the melody.
   play(step, t) {
-    const i = step % 16, bar = Math.floor(step / 16), ch = PROG[bar % 4], I = this.intensity, st = styleFor(state.levelIdx);
+    const i = step % 16, bar = Math.floor(step / 16), ch = PROG[bar % 4], I = this.intensity, st = this.menu ? STYLES[2] : styleFor(state.levelIdx);
     if (i % 4 === 0) this.kick(t, I >= 2 ? 0.7 : 0.9);
     // in battles the drums sit back so the dance melody is the loudest thing above the bass
     if (i === 4 || i === 12) this.clap(t, I >= 2 ? 0.18 : 0.3);
@@ -1297,7 +1323,7 @@ const music = {
     if (st.bass[i] !== null) this.bass(t, ch.r + st.bass[i] - 12, I >= 2 ? 0.15 : 0.18);
     if (I >= 2) { if (i === 14 && bar % 2 === 1) this.hat(t, 0.1, 0.03); return; }   // a little fill before each new bar pair
     const s32 = step % 32;
-    const sig = typeof levelDef !== "undefined" && levelDef && levelDef.signature && state.gameMode === "dance";
+    const sig = !this.menu && typeof levelDef !== "undefined" && levelDef && levelDef.signature && state.gameMode === "dance";
     if (sig) {   // signature level: the hook is the boss's motif, in the dance-move notes, every other bar
       for (const [b, mv] of levelDef.signature.motif) if (s32 === b * 4) this.moveNote(t, mv, 0.11);
       return;
@@ -1377,6 +1403,12 @@ const keymap = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "ri
 const dancemap = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", ArrowUp: "up", KeyW: "up", ArrowDown: "down", KeyS: "down", Space: "act", KeyX: "act", KeyJ: "act", Enter: "act" };
 addEventListener("keydown", e => {
   if (e.code === "KeyM") { audio.setMuted(!audio.muted); return; }
+  if (state.mode === "home") {
+    startMenuMusic();
+    if (e.code === "Enter" || e.code === "Space") { e.preventDefault(); leaveHome(); }
+    return;
+  }
+  if (state.mode === "title" && e.code === "Escape") { e.preventDefault(); showHome(); return; }
   if (state.mode === "title") {
     if (e.code === "ArrowLeft" || e.code === "KeyA") { e.preventDefault(); pick(ORDER[(ORDER.indexOf(sel) + ORDER.length - 1) % ORDER.length]); return; }
     if (e.code === "ArrowRight" || e.code === "KeyD") { e.preventDefault(); pick(ORDER[(ORDER.indexOf(sel) + 1) % ORDER.length]); return; }
@@ -1385,7 +1417,7 @@ addEventListener("keydown", e => {
     return;
   }
   if (state.mode === "card") {
-    if (e.code === "Escape") { e.preventDefault(); showTitle(); }
+    if (e.code === "Escape") { e.preventDefault(); showHome(); }
     else if (e.code === "Enter" || e.code === "Space") { if (e.target.closest && e.target.closest("button")) return; e.preventDefault(); cardPrimary && cardPrimary(); }
     return;
   }
@@ -1543,14 +1575,15 @@ function setStep(n) {
   card.classList.toggle("stepped", stepMQ.matches);
   card.querySelectorAll(".step").forEach(el => el.classList.toggle("on", +el.dataset.step === n));
   card.querySelectorAll("#stepDots li").forEach(li => { li.classList.toggle("on", +li.dataset.s === n); li.classList.toggle("done", +li.dataset.s < n); });
-  document.getElementById("backBtn").hidden = n === 1;
+  document.getElementById("backBtn").hidden = false;
+  document.getElementById("backBtn").textContent = n === 1 ? "Home" : "Back";
   const next = document.getElementById("nextBtn"); next.hidden = n === 2;
   next.textContent = "Next: start";
   document.getElementById("summary").textContent = `Playing as ${ch.name}`;
   card.scrollTop = 0;
 }
 document.getElementById("nextBtn").addEventListener("click", () => setStep(Math.min(2, titleStep + 1)));
-document.getElementById("backBtn").addEventListener("click", () => setStep(Math.max(1, titleStep - 1)));
+document.getElementById("backBtn").addEventListener("click", () => titleStep === 1 ? showHome() : setStep(titleStep - 1));
 try { stepMQ.addEventListener("change", () => setStep(titleStep)); } catch (e) {}
 function startGame() {
   audio.unlock();
@@ -1559,6 +1592,7 @@ function startGame() {
   startLevel();
 }
 function startLevel() {
+  stopMenuMusic(); homeEl.hidden = true;
   state.mode = "loading";
   restartLevel();
   writeSave(state.levelIdx);
@@ -1593,20 +1627,21 @@ function resumeGame() {
 document.getElementById("pauseBtn").addEventListener("click", () => pauseGame());
 document.getElementById("resumeBtn").addEventListener("click", () => resumeGame());
 document.getElementById("restartBtn").addEventListener("click", () => { closePause(); startLevel(); });
-document.getElementById("quitBtn").addEventListener("click", () => { closePause(); showTitle(); });
+document.getElementById("quitBtn").addEventListener("click", () => { closePause(); showHome(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) pauseGame(); });
 function showTitle() {
   state.paused = false; pauseCard.hidden = true;
   state.mode = "title"; titleCard.hidden = false; winCard.hidden = true; panel.hidden = false; document.body.classList.add("menu");
-  music.stop(); battle = null; document.body.classList.remove("battling");
+  battle = null; document.body.classList.remove("battling"); homeEl.hidden = true;
   state.levelIdx = 0; restartLevel(); refreshContinue(); setStep(1);
+  if (audio.ctx && audio.ctx.state === "running") startMenuMusic(); else music.stop();
   document.querySelector(`.pick[data-k="${sel}"]`)?.focus({ preventScroll: true });
 }
 function showCard(html, primary) {
   state.mode = "card"; winCard.innerHTML = html; titleCard.hidden = true; winCard.hidden = false; panel.hidden = false;
   document.body.classList.add("menu"); cardPrimary = primary;
   winCard.querySelector("[data-act=primary]")?.addEventListener("click", primary);
-  winCard.querySelector("[data-act=menu]")?.addEventListener("click", showTitle);
+  winCard.querySelector("[data-act=menu]")?.addEventListener("click", showHome);
   winCard.querySelector("[data-act=end]")?.addEventListener("click", endRun);
   winCard.querySelector("[data-act=primary]")?.focus({ preventScroll: true });
 }
@@ -2576,6 +2611,7 @@ function drawBattleUI() {
 // Rig Runner · Frame render and HUD.
 "use strict";
 function render(dt) {
+  if (state.mode === "home") { renderHome(dt); return; }
   const bi = beatInfo();
   let target;
   if (battle && rival) target = (pl.x + ch.W / 2 + rival.x) / 2 - viewW / 2;
@@ -2606,6 +2642,103 @@ function updateHud() {
 }
 </script>
 <script>
+// Rig Runner · Home screen: title, menu music, and your robot dancing on a stage.
+"use strict";
+// The first touch or key anywhere starts the music (browsers only allow sound after one),
+// and "Press here to start" goes on to the robot picker. Menu exits come back here.
+const homeEl = document.getElementById("home");
+const home = { pose: null, move: null, lastBar: -1, seq: ["up", "left", "act", "right", "down"], i: 0 };
+const MENU_BPM = 104;
+
+function startMenuMusic() {
+  audio.unlock();
+  if (!audio.ctx || (music.on && music.menu)) return;
+  music.menu = true; music.intensity = 1; music.start(MENU_BPM);
+}
+function stopMenuMusic() { music.menu = false; }
+function showHome() {
+  state.paused = false; pauseCard.hidden = true; battle = null; document.body.classList.remove("battling");
+  state.mode = "home"; state.levelIdx = 0;
+  panel.hidden = true; titleCard.hidden = true; winCard.hidden = true;
+  homeEl.hidden = false; document.body.classList.add("menu");
+  const v = readSave(), best = getBest();
+  document.getElementById("homeNote").textContent = v
+    ? `Saved game: level ${v.levelIdx + 1} with ${CHARS[v.robot].name}` + (best > STORY_LEN ? ` · best: level ${best}` : "")
+    : "Eleven story levels of platforming and dance battles, then endless.";
+  home.pose = null; home.lastBar = -1;
+  if (audio.ctx && audio.ctx.state === "running") startMenuMusic();
+  document.getElementById("homeStart").focus({ preventScroll: true });
+}
+function leaveHome() {
+  startMenuMusic();
+  homeEl.hidden = true;
+  showTitle();
+}
+document.getElementById("homeStart").addEventListener("click", e => { e.stopPropagation(); leaveHome(); });
+// any first touch on the home screen turns the music on without leaving it
+homeEl.addEventListener("pointerdown", () => startMenuMusic());
+
+// ---------- the stage ----------
+function homeBeatPos() {
+  return music.on && music.menu ? (music.now() - music.lat() - music.t0) / music.beatLen() : state.time * MENU_BPM / 60;
+}
+function renderHome(dt) {
+  const W = innerWidth, H = innerHeight, g = ctx;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const bp = homeBeatPos(), frac = ((bp % 1) + 1) % 1, bounce = Math.pow(1 - frac, 2), beat = Math.floor(bp);
+  // night sky
+  const grd = g.createLinearGradient(0, 0, 0, H);
+  grd.addColorStop(0, "#0a0a1e"); grd.addColorStop(0.7, "#191640"); grd.addColorStop(1, "#2a1f58");
+  g.fillStyle = grd; g.fillRect(0, 0, W, H);
+  // sweeping lasers
+  g.save(); g.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 6; i++) {
+    const ox = W * (0.1 + i * 0.16), a = Math.PI / 2 + Math.sin(state.time * (0.7 + i * 0.23) + i) * 0.6;
+    g.strokeStyle = ["#5ee7ff", "#ff5ec8", "#c6ff5e"][i % 3]; g.globalAlpha = 0.1 + 0.22 * bounce; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(ox, -10); g.lineTo(ox + Math.cos(a) * H * 1.4, Math.sin(a) * H * 1.4); g.stroke();
+  }
+  g.restore(); g.globalAlpha = 1;
+  // the stage fits between the title and the start button
+  const topBox = document.querySelector(".home-top").getBoundingClientRect(), botBox = document.querySelector(".home-bottom").getBoundingClientRect();
+  const floorY = Math.min(H * 0.8, botBox.top - 14), tile = Math.max(36, W / 18);
+  g.fillStyle = "#26333f"; g.fillRect(0, floorY, W, H - floorY);
+  g.fillStyle = "#c9d3db"; g.fillRect(0, floorY, W, 4);
+  for (let c = 0; c * tile < W; c++) {
+    g.globalAlpha = 0.25 + 0.55 * bounce * ((c + beat) % 2);
+    g.fillStyle = MOVE_COLOR[MOVES[(c * 3 + beat) % 5]]; g.fillRect(c * tile + 4, floorY + 6, tile - 8, 6);
+  }
+  g.globalAlpha = 1;
+  // spotlight
+  const spot = g.createRadialGradient(W / 2, floorY, 10, W / 2, floorY, Math.min(W, H) * 0.45);
+  spot.addColorStop(0, `rgba(255,224,138,${0.18 + 0.12 * bounce})`); spot.addColorStop(1, "rgba(255,224,138,0)");
+  g.fillStyle = spot; g.fillRect(0, 0, W, H);
+  if (!ch.img.head) return;
+  // nod along, and bust a move on every other bar
+  const bar = Math.floor(bp / 4);
+  if (bar !== home.lastBar) {
+    home.lastBar = bar;
+    if (bar % 2 === 1) home.move = { move: home.seq[home.i++ % home.seq.length], at: music.on && music.menu ? music.now() - music.lat() : state.time };
+  }
+  const nowT = music.on && music.menu ? music.now() - music.lat() : state.time;
+  const saveBpm = music.bpm; music.bpm = MENU_BPM;   // dancePose times moves in beats
+  const target = dancePose(ch, home.move, { frac, bounce, beat }, nowT);
+  const moving = home.move && nowT - home.move.at >= 0 && nowT - home.move.at < MENU_BPM && (nowT - home.move.at) < 60 / MENU_BPM * 0.9;
+  music.bpm = saveBpm;
+  if (!moving && ch.kind !== "spider") {
+    // between moves: a proper head nod, with the arms pumping on alternate beats
+    const side = beat % 2 ? 1 : -1;
+    target.hT = -0.12 + 0.34 * bounce; target.L += 0.05 * bounce;
+    target.nU += 0.55 * side * bounce; target.fU -= 0.55 * side * bounce;
+    target.nE += 0.3 * bounce; target.fE += 0.3 * bounce;
+  }
+  if (!home.pose) home.pose = Object.assign({}, target);
+  blendPose(home.pose, target, 1 - Math.exp(-dt * 26));
+  const size = Math.max(60, Math.min(floorY - topBox.bottom - 24, W * 0.5, 340)), sc = size / ch.height * ch.scale;
+  g.fillStyle = "rgba(0,0,0,0.35)"; g.beginPath(); g.ellipse(W / 2, floorY, size * 0.32, 8, 0, 0, Math.PI * 2); g.fill();
+  drawChar(g, ch, home.pose, W / 2, floorY + 2, 1, sc);
+}
+</script>
+<script>
 // Rig Runner · Main loop and startup.
 "use strict";
 let last = 0, stepAcc = 0;
@@ -2633,10 +2766,11 @@ Promise.all([hatReady, ...ORDER.map(k => loadChar(CHARS[k]))]).then(() => {
   refreshMenu();
   pick(sel);
   setStep(1);
+  showHome();
   requestAnimationFrame(t => { last = t; frame(t); });
 });
 window.__game = { dbg: { bipedBreak, spiderBreak, drawChar, bipedRun, bipedIdle, spiderGait, spiderAir, B_RISE, B_FALL, B_DANCE, dancePose, spiderDance }, state, pl, input, music,
-  get battle() { return battle; }, get rival() { return rival; }, get pose() { return pose; }, hintsCount: () => hints.length, rivalOff: () => { rival = null; battle = null; }, boltsList: () => bolts, gameOver, ENERGY, update, pressJump, startLevelForTest: () => startLevel(), startGame, continueGame, readSave, pick, refreshMenu, showTitle, STORY_LEN, battleInput, CHARS, HYBRIDS, makeHybrid, genLevel, solveLevel, loadLevel, endlessLevel, endlessBossSpec, buildEndlessBoss, rng32, hashSeed, get levelDef() { return levelDef; }, DANCE_LEVELS, startLevel, get grid() { return grid; },
+  get battle() { return battle; }, get rival() { return rival; }, get pose() { return pose; }, hintsCount: () => hints.length, rivalOff: () => { rival = null; battle = null; }, boltsList: () => bolts, gameOver, ENERGY, update, pressJump, startLevelForTest: () => startLevel(), startGame, continueGame, readSave, pick, refreshMenu, showTitle, showHome, leaveHome, STORY_LEN, battleInput, CHARS, HYBRIDS, makeHybrid, genLevel, solveLevel, loadLevel, endlessLevel, endlessBossSpec, buildEndlessBoss, rng32, hashSeed, get levelDef() { return levelDef; }, DANCE_LEVELS, startLevel, get grid() { return grid; },
   get ch() { return ch; }, get cam() { return [camX, camY, zoom]; } };
 </script>
 </body>

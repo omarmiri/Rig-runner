@@ -90,7 +90,7 @@ const music = {
   // One 16th-note step. Platforming (intensity 1) plays the full song with its hook.
   // Battles (intensity 2) strip back to drums and bass, so the dance notes are the melody.
   play(step, t) {
-    const i = step % 16, bar = Math.floor(step / 16), ch = PROG[bar % 4], I = this.intensity, st = styleFor(state.levelIdx);
+    const i = step % 16, bar = Math.floor(step / 16), ch = PROG[bar % 4], I = this.intensity, st = this.menu ? STYLES[2] : styleFor(state.levelIdx);
     if (i % 4 === 0) this.kick(t, I >= 2 ? 0.7 : 0.9);
     // in battles the drums sit back so the dance melody is the loudest thing above the bass
     if (i === 4 || i === 12) this.clap(t, I >= 2 ? 0.18 : 0.3);
@@ -99,7 +99,7 @@ const music = {
     if (st.bass[i] !== null) this.bass(t, ch.r + st.bass[i] - 12, I >= 2 ? 0.15 : 0.18);
     if (I >= 2) { if (i === 14 && bar % 2 === 1) this.hat(t, 0.1, 0.03); return; }   // a little fill before each new bar pair
     const s32 = step % 32;
-    const sig = typeof levelDef !== "undefined" && levelDef && levelDef.signature && state.gameMode === "dance";
+    const sig = !this.menu && typeof levelDef !== "undefined" && levelDef && levelDef.signature && state.gameMode === "dance";
     if (sig) {   // signature level: the hook is the boss's motif, in the dance-move notes, every other bar
       for (const [b, mv] of levelDef.signature.motif) if (s32 === b * 4) this.moveNote(t, mv, 0.11);
       return;

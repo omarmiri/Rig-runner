@@ -1,6 +1,6 @@
 // Rig Runner service worker: makes the game work offline and installable as a Home Screen app.
 // Bump VERSION whenever you publish changes so players' phones pick up the new files.
-const VERSION = "rig-runner-2026-11-22b";
+const VERSION = "rig-runner-2026-11-22c";
 const SHELL = [
   "./",
   "index.html",
@@ -26,6 +26,7 @@ const SHELL = [
   "js/render.js",
   "js/battle-ui.js",
   "js/render-frame.js",
+  "js/home.js",
   "js/main.js",
   "assets/robots/jumper/fist.png",
   "assets/robots/jumper/foot.png",

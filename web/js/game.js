@@ -83,14 +83,15 @@ function setStep(n) {
   card.classList.toggle("stepped", stepMQ.matches);
   card.querySelectorAll(".step").forEach(el => el.classList.toggle("on", +el.dataset.step === n));
   card.querySelectorAll("#stepDots li").forEach(li => { li.classList.toggle("on", +li.dataset.s === n); li.classList.toggle("done", +li.dataset.s < n); });
-  document.getElementById("backBtn").hidden = n === 1;
+  document.getElementById("backBtn").hidden = false;
+  document.getElementById("backBtn").textContent = n === 1 ? "Home" : "Back";
   const next = document.getElementById("nextBtn"); next.hidden = n === 2;
   next.textContent = "Next: start";
   document.getElementById("summary").textContent = `Playing as ${ch.name}`;
   card.scrollTop = 0;
 }
 document.getElementById("nextBtn").addEventListener("click", () => setStep(Math.min(2, titleStep + 1)));
-document.getElementById("backBtn").addEventListener("click", () => setStep(Math.max(1, titleStep - 1)));
+document.getElementById("backBtn").addEventListener("click", () => titleStep === 1 ? showHome() : setStep(titleStep - 1));
 try { stepMQ.addEventListener("change", () => setStep(titleStep)); } catch (e) {}
 function startGame() {
   audio.unlock();
@@ -99,6 +100,7 @@ function startGame() {
   startLevel();
 }
 function startLevel() {
+  stopMenuMusic(); homeEl.hidden = true;
   state.mode = "loading";
   restartLevel();
   writeSave(state.levelIdx);
@@ -133,20 +135,21 @@ function resumeGame() {
 document.getElementById("pauseBtn").addEventListener("click", () => pauseGame());
 document.getElementById("resumeBtn").addEventListener("click", () => resumeGame());
 document.getElementById("restartBtn").addEventListener("click", () => { closePause(); startLevel(); });
-document.getElementById("quitBtn").addEventListener("click", () => { closePause(); showTitle(); });
+document.getElementById("quitBtn").addEventListener("click", () => { closePause(); showHome(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) pauseGame(); });
 function showTitle() {
   state.paused = false; pauseCard.hidden = true;
   state.mode = "title"; titleCard.hidden = false; winCard.hidden = true; panel.hidden = false; document.body.classList.add("menu");
-  music.stop(); battle = null; document.body.classList.remove("battling");
+  battle = null; document.body.classList.remove("battling"); homeEl.hidden = true;
   state.levelIdx = 0; restartLevel(); refreshContinue(); setStep(1);
+  if (audio.ctx && audio.ctx.state === "running") startMenuMusic(); else music.stop();
   document.querySelector(`.pick[data-k="${sel}"]`)?.focus({ preventScroll: true });
 }
 function showCard(html, primary) {
   state.mode = "card"; winCard.innerHTML = html; titleCard.hidden = true; winCard.hidden = false; panel.hidden = false;
   document.body.classList.add("menu"); cardPrimary = primary;
   winCard.querySelector("[data-act=primary]")?.addEventListener("click", primary);
-  winCard.querySelector("[data-act=menu]")?.addEventListener("click", showTitle);
+  winCard.querySelector("[data-act=menu]")?.addEventListener("click", showHome);
   winCard.querySelector("[data-act=end]")?.addEventListener("click", endRun);
   winCard.querySelector("[data-act=primary]")?.focus({ preventScroll: true });
 }

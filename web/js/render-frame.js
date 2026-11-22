@@ -1,6 +1,7 @@
 // Rig Runner · Frame render and HUD.
 "use strict";
 function render(dt) {
+  if (state.mode === "home") { renderHome(dt); return; }
   const bi = beatInfo();
   let target;
   if (battle && rival) target = (pl.x + ch.W / 2 + rival.x) / 2 - viewW / 2;

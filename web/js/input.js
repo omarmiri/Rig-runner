@@ -7,6 +7,12 @@ const keymap = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "ri
 const dancemap = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", ArrowUp: "up", KeyW: "up", ArrowDown: "down", KeyS: "down", Space: "act", KeyX: "act", KeyJ: "act", Enter: "act" };
 addEventListener("keydown", e => {
   if (e.code === "KeyM") { audio.setMuted(!audio.muted); return; }
+  if (state.mode === "home") {
+    startMenuMusic();
+    if (e.code === "Enter" || e.code === "Space") { e.preventDefault(); leaveHome(); }
+    return;
+  }
+  if (state.mode === "title" && e.code === "Escape") { e.preventDefault(); showHome(); return; }
   if (state.mode === "title") {
     if (e.code === "ArrowLeft" || e.code === "KeyA") { e.preventDefault(); pick(ORDER[(ORDER.indexOf(sel) + ORDER.length - 1) % ORDER.length]); return; }
     if (e.code === "ArrowRight" || e.code === "KeyD") { e.preventDefault(); pick(ORDER[(ORDER.indexOf(sel) + 1) % ORDER.length]); return; }
@@ -15,7 +21,7 @@ addEventListener("keydown", e => {
     return;
   }
   if (state.mode === "card") {
-    if (e.code === "Escape") { e.preventDefault(); showTitle(); }
+    if (e.code === "Escape") { e.preventDefault(); showHome(); }
     else if (e.code === "Enter" || e.code === "Space") { if (e.target.closest && e.target.closest("button")) return; e.preventDefault(); cardPrimary && cardPrimary(); }
     return;
   }

@@ -27,7 +27,8 @@ js/                  classic scripts sharing one global scope, loaded in this or
   audio.js             synth sounds and the electro beat sequencer
   input.js             keyboard and touch input
   game.js              game state, level flow, saved progress
-  menu.js              title menu (modes, robot picker, phone steps)
+  menu.js              title menu (robot picker, phone steps)
+  home.js              home screen: title, menu music, the dancing robot
   effects.js           particles, popups, robots falling apart
   battle.js            dance battle rules, timing, scoring, boss skills
   update.js            per-step update and level-finish cards

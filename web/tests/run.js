@@ -144,10 +144,13 @@ function check(name, ok, detail) { results.push({ name, ok, detail }); console.l
   await page.waitForTimeout(2200); await page.evaluate(() => { __game.input.right = false; });
   await page.reload(); await page.waitForFunction(() => window.__game && __game.CHARS.runner.img && __game.CHARS.runner.img.head); await page.waitForTimeout(300);
 
+  const homeFirst = await page.evaluate(() => __game.state.mode === "home" && !document.getElementById("home").hidden);
+  await page.evaluate(() => __game.leaveHome());   // the app opens on the home screen; Start goes to the picker
+  await page.waitForTimeout(200);
   const label = await page.evaluate(() => document.getElementById("continueBtn").hidden ? "" : document.getElementById("continueBtn").textContent);
   await page.click("#continueBtn"); await page.waitForTimeout(300);
   const resumed = await page.evaluate(() => ({ lvl: __game.state.levelIdx, robot: __game.ch.name }));
-  check("save and continue across a reload", resumed.lvl === 1 && resumed.robot === "Jumper", `${label} -> level ${resumed.lvl + 1} as ${resumed.robot}`);
+  check("opens on the home screen; save and continue across a reload", homeFirst && resumed.lvl === 1 && resumed.robot === "Jumper", `home first: ${homeFirst}; ${label} -> level ${resumed.lvl + 1} as ${resumed.robot}`);
   // the story flows into endless: clearing level 11 continues at level 12 with a generated boss
   await page.evaluate(() => { const G = __game; G.state.levelIdx = G.STORY_LEN - 1; G.startLevelForTest(); });
   await page.waitForTimeout(200);
