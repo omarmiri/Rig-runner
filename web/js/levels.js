@@ -22,25 +22,6 @@ const THEMES = [
   { sky: ["#13060e", "#290d20", "#3c132e"], far: "#210a1b", glow: [255, 70, 120], laser: ["#ff5ec8", "#ff3a4a"] },
 ];
 
-const COURSE = {
-  name: "Assembly bay", cols: 142, goalCol: 132, theme: 0,
-  build() {
-    ground(0, 18, 10); bolt(8, 8); bolt(10, 7); bolt(12, 8);
-    ground(19, 26, 8); bolt(22, 6); bolt(24, 6);
-    ground(30, 40, 9); spikes(34, 35, 8); girder(36, 40, 6); bolt(37, 5); bolt(39, 5);
-    ground(41, 48, 10); checkpoint(44, 9);
-    block(50, 51, 8, 8); bolt(50.5, 6);
-    ground(53, 62, 10); block(56, 56, 9, 9); block(57, 58, 8, 9); block(59, 62, 7, 9); bolt(60.5, 5);
-    girder(64, 66, 6); bolt(65, 5);
-    ground(68, 80, 10); spikes(71, 74, 9); girder(70, 75, 7); bolt(71, 6); bolt(73, 6); bolt(75, 6);
-    block(78, 79, 7, 9);
-    ground(81, 88, 10); checkpoint(84, 9);
-    block(91, 92, 8, 8); bolt(91.5, 6); block(95, 96, 6, 6); bolt(95.5, 4); block(99, 100, 8, 8); bolt(99.5, 6);
-    ground(102, 112, 10); spikes(104, 105, 9); girder(106, 107, 7); block(109, 110, 6, 9); bolt(109.5, 4);
-    ground(111, 141, 10); bolt(115, 8); bolt(117, 7); bolt(119, 8); spikes(122, 123, 9); bolt(122.5, 6);
-    block(140, 141, 0, 9);
-  },
-};
 
 // Reusable course sections. Each starts and ends on ground at row 10; widths are fixed so a level's size is known up front.
 // Every rise is at most 3 tiles and every gap at most 3 tiles, so all five robots can clear them.
@@ -71,13 +52,6 @@ function makeLevel(meta, list, dance) {
   return def;
 }
 
-const FREE_LEVELS = [
-  COURSE,
-  makeLevel({ name: "Loading dock", theme: 1 }, ["step", "spikeRun", "rest", "stones", "stairs", "rest", "girderPit", "spikeHop"], false),
-  makeLevel({ name: "Conveyor works", theme: 2 }, ["tower", "pillars", "rest", "spikeField", "highRoad", "rest", "stones", "spikeHop"], false),
-  makeLevel({ name: "Cooling towers", theme: 3 }, ["girderPit", "spikeHop", "rest", "highRoad", "pillars", "rest", "tower", "spikeField", "stones"], false),
-  makeLevel({ name: "Core reactor", theme: 4 }, ["pillars", "highRoad", "rest", "spikeHop", "girderPit", "spikeField", "rest", "highRoad", "stones", "tower", "spikeHop"], false),
-];
 
 // Dance battle campaign: tempo rises each level; rounds = { beats, moves, eighths }. The last rival is your dark clone.
 const DANCE_LEVELS = [
@@ -177,4 +151,6 @@ const DANCE_LEVELS = [
     ],
   };
 })();
-const levelList = () => state.gameMode === "dance" ? DANCE_LEVELS : FREE_LEVELS;
+// The story is the 11 hand-made levels; after them the game continues with generated endless levels.
+const STORY_LEN = DANCE_LEVELS.length;
+const levelList = () => DANCE_LEVELS;

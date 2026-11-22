@@ -22,11 +22,11 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
 resize();
 Promise.all([hatReady, ...ORDER.map(k => loadChar(CHARS[k]))]).then(() => {
   ORDER.forEach(k => calibrate(CHARS[k]));
-  setMode(state.gameMode);
+  refreshMenu();
   pick(sel);
   setStep(1);
   requestAnimationFrame(t => { last = t; frame(t); });
 });
 window.__game = { dbg: { bipedBreak, spiderBreak, drawChar, bipedRun, bipedIdle, spiderGait, spiderAir, B_RISE, B_FALL, B_DANCE, dancePose, spiderDance }, state, pl, input, music,
-  get battle() { return battle; }, get rival() { return rival; }, get pose() { return pose; }, hintsCount: () => hints.length, rivalOff: () => { rival = null; battle = null; }, update, pressJump, startLevelForTest: () => startLevel(), startGame, continueGame, readSave, pick, setMode, setLen, showTitle, battleInput, CHARS, HYBRIDS, makeHybrid, genLevel, solveLevel, loadLevel, endlessLevel, endlessBossSpec, buildEndlessBoss, rng32, hashSeed, get levelDef() { return levelDef; }, FREE_LEVELS, DANCE_LEVELS, startLevel, get grid() { return grid; },
+  get battle() { return battle; }, get rival() { return rival; }, get pose() { return pose; }, hintsCount: () => hints.length, rivalOff: () => { rival = null; battle = null; }, update, pressJump, startLevelForTest: () => startLevel(), startGame, continueGame, readSave, pick, refreshMenu, showTitle, STORY_LEN, battleInput, CHARS, HYBRIDS, makeHybrid, genLevel, solveLevel, loadLevel, endlessLevel, endlessBossSpec, buildEndlessBoss, rng32, hashSeed, get levelDef() { return levelDef; }, DANCE_LEVELS, startLevel, get grid() { return grid; },
   get ch() { return ch; }, get cam() { return [camX, camY, zoom]; } };

@@ -67,7 +67,7 @@ function genLevel(R, i, dance) {
   while (h < 10) { h = Math.min(10, h + ri(R, 1, 3)); flat(2); }
   const body = x, endW = dance ? 32 : 16, cols = body + endW;
   put(() => { ground(body, cols - 1, 10); bolt(body + 4, 8); bolt(body + 6, 7); bolt(body + 8, 8); block(cols - 2, cols - 1, 0, 9); });
-  const def = { name: `Sector ${i + 1}`, theme: i % THEMES.length, cols, goalCol: body + (dance ? 27 : 10), build: () => ops.forEach(f => f()), generated: true };
+  const def = { name: `Sector ${Math.max(0, i - STORY_LEN) + 1}`, theme: i % THEMES.length, cols, goalCol: body + (dance ? 27 : 10), build: () => ops.forEach(f => f()), generated: true };
   if (dance) def.rivalCol = body + 20;
   return def;
 }

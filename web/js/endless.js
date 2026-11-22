@@ -54,9 +54,11 @@ const NAME_B = ["Stomper", "Twister", "Spinner", "Breaker", "Popper", "Krusher",
 const TAUNTS = ["Step up or step aside.", "My circuits were built for this.", "You call that a groove?", "Watch and weep.", "Spin to win.", "I never miss a beat.", "Bring the bass.", "Your moves are outdated.", "Prepare to be out-flared.", "Reboot your rhythm."];
 const SKILL_INFO = { ghost: ["Ghost", "moves turn into ? on your turn"], fake: ["Fake-out", "red moves are decoys: don't copy them"], blackout: ["Blackout", "the lights cut out for a beat"], encore: ["Encore", "one extra round"], double: ["Double time", "the last round is twice as busy"] };
 const BIPEDS = ["runner", "jumper", "slim", "tank"];
-const bossScaleFor = i => Math.min(1.8, 1 + 0.1 * Math.floor(i / 5));
+// i is the overall level index; e counts endless levels after the story (0 = the first one)
+const endlessOf = i => Math.max(0, i - STORY_LEN);
+const bossScaleFor = i => Math.min(1.8, 1 + 0.1 * Math.floor(endlessOf(i) / 5));
 function endlessBossSpec(i) {
-  const R = rng32(hashSeed(state.runSeed, i, 7)), set = Math.floor(i / 5), milestone = i % 5 === 4;
+  const e = endlessOf(i), R = rng32(hashSeed(state.runSeed, i, 7)), set = Math.floor(e / 5), milestone = e % 5 === 4;
   const pick = a => a[Math.floor(R() * a.length)];
   const nSk = milestone ? Math.min(3, 1 + set) : set === 0 ? 0 : set < 3 ? 1 : 2;
   const pool = Object.keys(SKILL_INFO), skills = [];
@@ -68,7 +70,7 @@ function endlessBossSpec(i) {
   let acc = R() < 0.3 + 0.12 * set ? pick(Object.keys(ACC)) : null;
   let name = pick(NAME_A) + " " + pick(NAME_B);
   // Wrangler: cowboy hat + laser lasso. Always the 3rd boss of a run, then now and then.
-  const wrangler = i === 2 || (i > 4 && R() < 0.12);
+  const wrangler = e === 0 || (e > 4 && R() < 0.12);   // the first endless boss is always a Wrangler
   if (wrangler) { acc = "hat"; name = pick(["Laser", "Neon", "Plasma", "Volt"]) + " " + pick(["Wrangler", "Rustler", "Outlaw", "Ranger"]); }
   let spec;
   if (!wrangler && R() < 0.2) {
@@ -99,19 +101,19 @@ function endlessRounds(i) {
 // generate, solve, and keep only a level the selected robot can finish
 function endlessLevel(i) {
   if (state.endCache && state.endCache.i === i) return state.endCache.def;
-  const dance = state.gameMode === "dance", t0 = performance.now();
+  const dance = true, t0 = performance.now();
   let def = null, tries = 0;
   for (; tries < 30 && !def; tries++) {
     const cand = genLevel(rng32(hashSeed(state.runSeed, i, tries + 1)), i, dance);
     loadLevel(cand);
     if (solveLevel(ch).ok) def = cand;
   }
-  if (!def) def = makeLevel({ name: `Sector ${i + 1}`, theme: i % THEMES.length }, ["rest", "rest", "rest"], dance);
+  if (!def) def = makeLevel({ name: `Sector ${endlessOf(i) + 1}`, theme: i % THEMES.length }, ["rest", "rest", "rest"], dance);
   def.tries = tries; def.genMs = performance.now() - t0;
   if (dance) { const spec = endlessBossSpec(i); def.bossSpec = spec; def.rivalChar = buildEndlessBoss(spec); def.bpm = Math.min(118, Math.round(88 + 1.5 * i)); def.rounds = endlessRounds(i); }
   state.endCache = { i, def };
   return def;
 }
-function bestKey() { return "rigrunner.best." + state.gameMode; }
+function bestKey() { return "rigrunner.best.story"; }
 function getBest() { try { return +localStorage.getItem(bestKey()) || 0; } catch (e) { return 0; } }
 function saveBest(n) { try { if (n > getBest()) localStorage.setItem(bestKey(), String(n)); } catch (e) {} }

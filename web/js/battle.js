@@ -172,7 +172,7 @@ function updateBattle(dt) {
       const acc = Math.round(B.acc * 100);
       showCard(`<span class="eyebrow neon">Level ${state.levelIdx + 1} · ${levelDef.name}</span><h1>Out-danced</h1>
         <p>${rival.ch.name} kept the dock and shook you to pieces. You hit ${acc}% of the moves; you need ${Math.round(PASS * 100)}% to win. Watch the routine, then copy each move on its beat.</p>
-        <div class="actions"><button class="btn" data-act="primary" type="button">Battle again</button>${state.endless ? `<button class="btn ghost" data-act="end" type="button">End run</button>` : `<button class="btn ghost" data-act="menu" type="button">Menu</button>`}</div>`,
+        <div class="actions"><button class="btn" data-act="primary" type="button">Battle again</button>${state.endless ? `<button class="btn ghost" data-act="end" type="button">End run</button>` : ""}<button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
         () => { play(); battle = null; rival.dance = null; for (let i = debris.length - 1; i >= 0; i--) if (debris[i].owner === "player") debris.splice(i, 1); pl.shattered = false; pl.flash = 0.6; startBattle(); });
     }
   }

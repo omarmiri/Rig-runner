@@ -13,32 +13,17 @@ ORDER.forEach((k, i) => {
   picker.appendChild(b);
   previews.push({ k, cv: b.querySelector("canvas"), phase: i * 1.3 });
 });
-document.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
-document.querySelectorAll("[data-len]").forEach(b => b.addEventListener("click", () => setLen(b.dataset.len === "endless")));
-function setLen(endless) {
-  state.endless = endless;
-  try { localStorage.setItem("rigrunner.endless", endless ? "1" : "0"); } catch (e) {}
-  setMode(state.gameMode);
-}
-function setMode(m) {
-  state.gameMode = m;
-  try { localStorage.setItem("rigrunner.mode", m); } catch (e) {}
-  document.querySelectorAll("[data-mode]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
-  document.querySelectorAll("[data-len]").forEach(b => b.setAttribute("aria-pressed", String((b.dataset.len === "endless") === !!state.endless)));
-  const dance = m === "dance", best = getBest();
-  document.getElementById("modeText").textContent = dance
-    ? "Clear eleven levels to electro beats. A rival guards each dock: it dances a routine, then you copy it on the beat to get past. Beat the four robots, then six hybrid bosses built from their parts, then your own dark clone."
-    : "Five courses across the plant, from the assembly bay to the core reactor. Reach each charging dock, grab the brass nuts, and stay off the spikes.";
-  if (state.endless) document.getElementById("modeText").textContent = (dance
-    ? "Endless dance battle. Every level is freshly generated and checked to be beatable before you play it. Each ends with a randomly built boss: mixed parts, colours, accessories and skills. Bosses grow every 5 levels, and every 5th boss is your dark clone."
-    : "Endless free run. Every level is freshly generated with ramps, steps, gaps and spikes, and checked to be beatable before you play it. Levels get longer and harder as you go.")
-    + (best ? ` Your best: ${best} level${best === 1 ? "" : "s"}.` : "");
-  document.getElementById("titleEyebrow").textContent = (dance ? "Dance battle · " : "Free run · ") + (state.endless ? "Endless" : dance ? "11 levels" : "5 courses");
-  document.getElementById("titleEyebrow").classList.toggle("neon", dance);
-  document.getElementById("controls").innerHTML = `<dt>Run</dt><dd>← → or A D</dd><dt>Jump</dt><dd>Space, W or ↑. Hold for a higher jump</dd>` +
-    (dance ? `<dt>Dance</dt><dd class="moves"><span><kbd>↑</kbd>Head spin</span><span><kbd>←</kbd>Windmill</span><span><kbd>↓</kbd>Backspin</span><span><kbd>→</kbd>Air freeze</span><span><kbd>Space</kbd>Flare</span></dd>`
-           : `<dt>Drop</dt><dd>↓ or S through orange girders</dd>`);
-  document.getElementById("startBtn").textContent = state.endless ? "Start endless run" : dance ? "Start level 1" : "Start course 1";
+// The title text and controls (there is one game: the story, then endless battles).
+function refreshMenu() {
+  const best = getBest();
+  document.getElementById("modeText").textContent =
+    "Eleven story levels to electro beats. A rival guards each dock: it dances a routine, then you copy it on the beat to get past. " +
+    "Beat the four robots, six hybrid bosses and your own dark clone, then keep going: endless levels with new bosses that grow every five levels." +
+    (best > STORY_LEN ? ` Your best: level ${best}.` : "");
+  document.getElementById("titleEyebrow").textContent = "Dance battles · 11 story levels, then endless";
+  document.getElementById("titleEyebrow").classList.add("neon");
+  document.getElementById("controls").innerHTML = `<dt>Run</dt><dd>← → or A D</dd><dt>Jump</dt><dd>Space, W or ↑. Hold for a higher jump</dd><dt>Drop</dt><dd>↓ or S through orange girders</dd>` +
+    `<dt>Dance</dt><dd class="moves"><span><kbd>↑</kbd>Head spin</span><span><kbd>←</kbd>Windmill</span><span><kbd>↓</kbd>Backspin</span><span><kbd>→</kbd>Air freeze</span><span><kbd>Space</kbd>Flare</span></dd>`;
   refreshContinue();
   document.getElementById("hudLvlBox").hidden = false;
   if (state.mode === "title") restartLevel();

@@ -32,7 +32,7 @@ body.menu .hud { visibility: hidden; }
 #pauseBtn svg { width: 20px; height: 20px; fill: currentColor; }
 #pauseBtn:hover, #pauseBtn:focus-visible { color: var(--ink); border-color: var(--hazard); outline: none; }
 .card.pause { width: min(24rem, 100%); }
-.card .pause-actions { flex-direction: column; align-items: stretch; }
+.card .pause-actions { flex-direction: column; align-items: flex-start; }
 .card .pause-actions .btn { text-align: center; }
 .card .btn.danger { background: transparent; color: #ff7a85; border: 1px solid rgba(255, 94, 108, 0.6); }
 .hud .keys { font-size: 12px; color: var(--dim); letter-spacing: 0.06em; }
@@ -46,7 +46,9 @@ body.battling .hud .keys { visibility: hidden; }
 .card dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 14px; }
 .card dt { color: var(--ink); font-weight: 700; }
 .card dd { margin: 0; color: var(--dim); }
-.card .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.card .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: flex-start; }
+/* buttons keep one size everywhere (menus, cards, pause), never stretched to the card width */
+.card .actions .btn, .card .stepnav .btn { flex: 0 0 auto; width: 13rem; max-width: 100%; text-align: center; }
 .card .btn { font: inherit; font-weight: 700; font-size: 16px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--night); background: var(--hazard); border: 0; padding: 12px 22px; cursor: pointer; }
 .card .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
 .card .savenote { font-size: 13px; color: var(--dim); margin-top: -4px; }
@@ -61,7 +63,8 @@ body.battling .hud .keys { visibility: hidden; }
 .card.stepped .steps li.done { border-color: rgba(242, 162, 58, 0.5); }
 .card.stepped .steps li.on { color: var(--ink); border-color: var(--hazard); }
 .card.stepped .stepnav { display: flex; justify-content: space-between; gap: 12px; }
-.card.stepped .stepnav .btn, .card.stepped .actions .btn { flex: 1; padding: 14px 16px; }
+.card.stepped .stepnav .btn, .card.stepped .actions .btn { padding: 14px 16px; }
+.card.stepped .stepnav .btn { width: 11rem; max-width: calc(50% - 6px); }
 .card.stepped .summary { display: block; font-weight: 700; color: var(--ink); }
 .card.stepped .mode { padding: 12px 14px; }
 .card.stepped .stepnav { position: sticky; bottom: -16px; margin: 0 -18px -16px; padding: 10px 18px 16px; background: #0c151e; border-top: 1px solid var(--line); }

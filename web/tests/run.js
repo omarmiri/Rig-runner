@@ -38,27 +38,22 @@ function check(name, ok, detail) { results.push({ name, ok, detail }); console.l
   // 1. Campaign layouts: no gap or climb beyond what every robot can do
   const camp = await page.evaluate(() => {
     const G = __game, bad = [];
-    for (const mode of ["course", "dance"]) {
-      G.setMode(mode);
-      const list = mode === "dance" ? G.DANCE_LEVELS : G.FREE_LEVELS;
-      list.forEach((def, i) => { G.loadLevel(def); for (const k of ["runner", "jumper", "slim", "tank", "spider"]) if (!G.solveLevel(G.CHARS[k]).ok) bad.push(`${mode} ${i + 1} ${def.name} (${k})`); });
-    }
+    G.DANCE_LEVELS.forEach((def, i) => { G.loadLevel(def); for (const k of ["runner", "jumper", "slim", "tank", "spider"]) if (!G.solveLevel(G.CHARS[k]).ok) bad.push(`${i + 1} ${def.name} (${k})`); });
     return bad;
   });
-  check("all 16 campaign levels solvable by every robot", camp.length === 0, camp.join(", "));
+  check("all 11 story levels solvable by every robot", camp.length === 0, camp.join(", "));
 
   // 2. Endless pipeline: every generated level is proven beatable for the chosen robot
   const N = FULL ? 25 : 4;
   const endless = await page.evaluate(N => {
     const G = __game; let total = 0, fallback = 0, recheck = 0, maxMs = 0;
-    G.setLen(true);
-    for (const mode of ["course", "dance"]) {
-      G.setMode(mode);
+    for (let pass = 0; pass < 2; pass++) {
       for (const k of ["runner", "jumper", "slim", "tank", "spider"]) {
-        G.pick(k);
+        G.state.mode = "title"; G.state.levelIdx = 0; G.pick(k);
         for (let run = 0; run < N; run++) {
-          G.state.runSeed = 9000 + run * 31 + k.length;
-          for (const lvl of [0, 3, 8, 15, 25, 40, 60, 90]) {
+          G.state.runSeed = 9000 + run * 31 + k.length + pass * 7;
+          for (const e of [0, 3, 8, 15, 25, 40, 60, 90]) {
+            const lvl = G.STORY_LEN + e;
             G.state.endCache = null; G.state.mode = "loading"; G.state.levelIdx = lvl;
             const def = G.endlessLevel(lvl); total++; maxMs = Math.max(maxMs, def.genMs);
             if (!def.generated) fallback++;
@@ -67,7 +62,7 @@ function check(name, ok, detail) { results.push({ name, ok, detail }); console.l
         }
       }
     }
-    G.state.mode = "title"; G.setLen(false);
+    G.state.mode = "title"; G.state.levelIdx = 0;
     return { total, fallback, recheck, maxMs: Math.round(maxMs) };
   }, N);
   check(`endless levels proven beatable (${endless.total} generated)`, endless.fallback === 0 && endless.recheck === 0, `fallbacks ${endless.fallback}, re-check failures ${endless.recheck}, slowest ${endless.maxMs} ms`);
@@ -75,7 +70,6 @@ function check(name, ok, detail) { results.push({ name, ok, detail }); console.l
   // 3. Solver predictions replayed through the real game loop (jumps, walk-offs and girder drops)
   const replay = await page.evaluate(SEEDS => {
     const G = __game, out = { tested: 0, matched: 0 };
-    G.setMode("course");
     for (const k of ["runner", "jumper", "slim", "tank", "spider"]) {
       G.state.mode = "title"; G.state.levelIdx = 0; G.pick(k);
       for (let s = 0; s < SEEDS; s++) {
@@ -116,7 +110,6 @@ function check(name, ok, detail) { results.push({ name, ok, detail }); console.l
   // 5. Walking up and down ramps
   const ramps = await page.evaluate(() => {
     const G = __game, out = { tested: 0, ok: 0 };
-    G.setMode("course");
     for (const k of ["runner", "jumper", "slim", "tank", "spider"]) {
       G.state.mode = "title"; G.state.levelIdx = 0; G.pick(k);
       for (let s = 0; s < 15 && out.tested < 200; s++) {
@@ -143,23 +136,32 @@ function check(name, ok, detail) { results.push({ name, ok, detail }); console.l
   check(`ramps walkable by every robot (${ramps.tested} ramps)`, ramps.tested > 0 && ramps.ok === ramps.tested, `${ramps.ok}/${ramps.tested}`);
 
   // 6. Saved progress survives a reload and Continue resumes it
-  await page.evaluate(() => { localStorage.clear(); const G = __game; G.showTitle(); G.setLen(false); G.setMode("course"); G.pick("jumper"); });
+  await page.evaluate(() => { localStorage.clear(); const G = __game; G.showTitle(); G.pick("jumper"); });
   await page.evaluate(() => document.getElementById("startBtn").scrollIntoView({ block: "center" }));
   await page.click("#startBtn", { timeout: 10000 }).catch(() => page.evaluate(() => document.getElementById("startBtn").click()));
   await page.waitForTimeout(300);
-  await page.evaluate(() => { const G = __game, gx = G.levelDef.goalCol * 48 + 48; G.pl.x = gx - 140; G.pl.y = 10 * 48 - G.ch.H; G.input.right = true; });
+  await page.evaluate(() => { const G = __game, gx = G.levelDef.goalCol * 48 + 48; G.rival.defeated = true; G.pl.x = gx - 140; G.pl.y = 10 * 48 - G.ch.H; G.input.right = true; });
   await page.waitForTimeout(2200); await page.evaluate(() => { __game.input.right = false; });
   await page.reload(); await page.waitForFunction(() => window.__game && __game.CHARS.runner.img && __game.CHARS.runner.img.head); await page.waitForTimeout(300);
-  await page.evaluate(() => { __game.setLen(false); __game.setMode("course"); });
+
   const label = await page.evaluate(() => document.getElementById("continueBtn").hidden ? "" : document.getElementById("continueBtn").textContent);
   await page.click("#continueBtn"); await page.waitForTimeout(300);
   const resumed = await page.evaluate(() => ({ lvl: __game.state.levelIdx, robot: __game.ch.name }));
   check("save and continue across a reload", resumed.lvl === 1 && resumed.robot === "Jumper", `${label} -> level ${resumed.lvl + 1} as ${resumed.robot}`);
+  // the story flows into endless: clearing level 11 continues at level 12 with a generated boss
+  await page.evaluate(() => { const G = __game; G.state.levelIdx = G.STORY_LEN - 1; G.startLevelForTest(); });
+  await page.waitForTimeout(200);
+  await page.evaluate(() => { const G = __game, gx = G.levelDef.goalCol * 48 + 48; G.rival.defeated = true; G.pl.x = gx - 140; G.pl.y = 10 * 48 - G.ch.H; G.input.right = true; });
+  await page.waitForTimeout(2200); await page.evaluate(() => { __game.input.right = false; });
+  const champ = await page.evaluate(() => document.getElementById("winCard").innerText);
+  await page.click("#winCard [data-act=primary]"); await page.waitForTimeout(400);
+  const cont = await page.evaluate(() => ({ lvl: __game.state.levelIdx, endless: __game.state.endless, boss: __game.rival && __game.rival.ch.name, generated: !!__game.levelDef.generated }));
+  check("story flows into endless battles", /Keep going/i.test(champ) && cont.lvl === 11 && cont.endless && cont.generated, `level ${cont.lvl + 1}, boss ${cont.boss}`);
   await page.evaluate(() => { localStorage.clear(); __game.showTitle(); });
 
   // 7. (full) A real-time dance battle with on-beat input is won and the rival falls apart
   if (FULL) {
-    await page.evaluate(() => { const G = __game; G.showTitle(); G.setLen(false); G.setMode("dance"); G.pick("runner"); G.startGame(); });
+    await page.evaluate(() => { const G = __game; G.showTitle(); G.pick("runner"); G.startGame(); });
     await page.waitForTimeout(300);
     await page.evaluate(() => { const g = __game; g.pl.x = g.rival.x - 600; g.pl.y = 10 * 48 - g.ch.H; g.input.right = true; });
     await page.waitForTimeout(1200); await page.evaluate(() => { __game.input.right = false; });

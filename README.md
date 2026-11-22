@@ -1,6 +1,6 @@
 # Rig Runner
 
-A browser platformer starring robots built from rig parts: five playable robots, a dance battle campaign with hybrid bosses and a dark-clone finale, five free-run courses, and endless modes with generated levels and bosses that are proven beatable before you play them.
+A browser platformer starring robots built from rig parts: eleven story levels of platforming and dance battles (rival robots, hybrid bosses, a dark-clone finale), then endless generated levels and bosses that are proven beatable before you play them.
 
 - **`web/`** is the source of truth: the game split into a page shell, CSS, scripts by system, and PNG assets, plus automated tests. This is the folder to host on a website. See [`web/README.md`](web/README.md).
 - **`index.html`** in the repo root is a single-file build of `web/` (made with `web/tools/build-single.py`), used for the temporary GitHub Pages site.

@@ -64,4 +64,4 @@ function touchesSpikes(b, W, H) {
   return hit;
 }
 let theme = THEMES[0];
-let levelDef = COURSE;
+let levelDef = DANCE_LEVELS[0];

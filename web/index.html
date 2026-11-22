@@ -36,19 +36,8 @@
   <div class="card" id="titleCard">
     <span class="eyebrow" id="titleEyebrow">Assembly bay · Night shift</span>
     <h1>Rig Runner</h1>
-    <ol class="steps" id="stepDots" aria-label="Setup"><li data-s="1">1 · Mode</li><li data-s="2">2 · Robot</li><li data-s="3">3 · Start</li></ol>
+    <ol class="steps" id="stepDots" aria-label="Setup"><li data-s="1">1 · Robot</li><li data-s="2">2 · Start</li></ol>
     <section class="step" data-step="1">
-    <div class="modes" role="group" aria-label="Game mode">
-      <button class="mode" type="button" data-mode="dance" aria-pressed="false"><b>Dance battle</b><span>11 levels · hybrid bosses · electro beats</span></button>
-      <button class="mode" type="button" data-mode="course" aria-pressed="false"><b>Free run</b><span>5 courses · no rivals</span></button>
-    </div>
-    <div class="modes" role="group" aria-label="Length">
-      <button class="mode" type="button" data-len="campaign" aria-pressed="true"><b>Campaign</b><span>Set levels with an ending</span></button>
-      <button class="mode" type="button" data-len="endless" aria-pressed="false"><b>Endless</b><span>New levels forever · bosses grow</span></button>
-    </div>
-    <p id="modeText"></p>
-    </section>
-    <section class="step" data-step="2">
     <div class="picker-h"><span>Choose your robot</span><span class="keyhint">← → to switch</span></div>
     <div class="picker" id="picker" role="group" aria-label="Robot"></div>
     <div class="spec">
@@ -56,8 +45,9 @@
       <div class="ability" id="ability"></div>
     </div>
     </section>
-    <section class="step" data-step="3">
+    <section class="step" data-step="2">
     <p class="summary" id="summary"></p>
+    <p id="modeText"></p>
     <dl id="controls"></dl>
     <div class="actions"><button class="btn" id="continueBtn" type="button" hidden>Continue</button><button class="btn" id="startBtn" type="button">Start</button></div>
     <p class="savenote" id="saveNote" hidden></p>

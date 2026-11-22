@@ -57,7 +57,7 @@ body.menu .hud { visibility: hidden; }
 #pauseBtn svg { width: 20px; height: 20px; fill: currentColor; }
 #pauseBtn:hover, #pauseBtn:focus-visible { color: var(--ink); border-color: var(--hazard); outline: none; }
 .card.pause { width: min(24rem, 100%); }
-.card .pause-actions { flex-direction: column; align-items: stretch; }
+.card .pause-actions { flex-direction: column; align-items: flex-start; }
 .card .pause-actions .btn { text-align: center; }
 .card .btn.danger { background: transparent; color: #ff7a85; border: 1px solid rgba(255, 94, 108, 0.6); }
 .hud .keys { font-size: 12px; color: var(--dim); letter-spacing: 0.06em; }
@@ -71,7 +71,9 @@ body.battling .hud .keys { visibility: hidden; }
 .card dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 14px; }
 .card dt { color: var(--ink); font-weight: 700; }
 .card dd { margin: 0; color: var(--dim); }
-.card .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.card .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: flex-start; }
+/* buttons keep one size everywhere (menus, cards, pause), never stretched to the card width */
+.card .actions .btn, .card .stepnav .btn { flex: 0 0 auto; width: 13rem; max-width: 100%; text-align: center; }
 .card .btn { font: inherit; font-weight: 700; font-size: 16px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--night); background: var(--hazard); border: 0; padding: 12px 22px; cursor: pointer; }
 .card .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
 .card .savenote { font-size: 13px; color: var(--dim); margin-top: -4px; }
@@ -86,7 +88,8 @@ body.battling .hud .keys { visibility: hidden; }
 .card.stepped .steps li.done { border-color: rgba(242, 162, 58, 0.5); }
 .card.stepped .steps li.on { color: var(--ink); border-color: var(--hazard); }
 .card.stepped .stepnav { display: flex; justify-content: space-between; gap: 12px; }
-.card.stepped .stepnav .btn, .card.stepped .actions .btn { flex: 1; padding: 14px 16px; }
+.card.stepped .stepnav .btn, .card.stepped .actions .btn { padding: 14px 16px; }
+.card.stepped .stepnav .btn { width: 11rem; max-width: calc(50% - 6px); }
 .card.stepped .summary { display: block; font-weight: 700; color: var(--ink); }
 .card.stepped .mode { padding: 12px 14px; }
 .card.stepped .stepnav { position: sticky; bottom: -16px; margin: 0 -18px -16px; padding: 10px 18px 16px; background: #0c151e; border-top: 1px solid var(--line); }
@@ -171,19 +174,8 @@ body.menu .touch { display: none !important; }
   <div class="card" id="titleCard">
     <span class="eyebrow" id="titleEyebrow">Assembly bay · Night shift</span>
     <h1>Rig Runner</h1>
-    <ol class="steps" id="stepDots" aria-label="Setup"><li data-s="1">1 · Mode</li><li data-s="2">2 · Robot</li><li data-s="3">3 · Start</li></ol>
+    <ol class="steps" id="stepDots" aria-label="Setup"><li data-s="1">1 · Robot</li><li data-s="2">2 · Start</li></ol>
     <section class="step" data-step="1">
-    <div class="modes" role="group" aria-label="Game mode">
-      <button class="mode" type="button" data-mode="dance" aria-pressed="false"><b>Dance battle</b><span>11 levels · hybrid bosses · electro beats</span></button>
-      <button class="mode" type="button" data-mode="course" aria-pressed="false"><b>Free run</b><span>5 courses · no rivals</span></button>
-    </div>
-    <div class="modes" role="group" aria-label="Length">
-      <button class="mode" type="button" data-len="campaign" aria-pressed="true"><b>Campaign</b><span>Set levels with an ending</span></button>
-      <button class="mode" type="button" data-len="endless" aria-pressed="false"><b>Endless</b><span>New levels forever · bosses grow</span></button>
-    </div>
-    <p id="modeText"></p>
-    </section>
-    <section class="step" data-step="2">
     <div class="picker-h"><span>Choose your robot</span><span class="keyhint">← → to switch</span></div>
     <div class="picker" id="picker" role="group" aria-label="Robot"></div>
     <div class="spec">
@@ -191,8 +183,9 @@ body.menu .touch { display: none !important; }
       <div class="ability" id="ability"></div>
     </div>
     </section>
-    <section class="step" data-step="3">
+    <section class="step" data-step="2">
     <p class="summary" id="summary"></p>
+    <p id="modeText"></p>
     <dl id="controls"></dl>
     <div class="actions"><button class="btn" id="continueBtn" type="button" hidden>Continue</button><button class="btn" id="startBtn" type="button">Start</button></div>
     <p class="savenote" id="saveNote" hidden></p>
@@ -631,25 +624,6 @@ const THEMES = [
   { sky: ["#13060e", "#290d20", "#3c132e"], far: "#210a1b", glow: [255, 70, 120], laser: ["#ff5ec8", "#ff3a4a"] },
 ];
 
-const COURSE = {
-  name: "Assembly bay", cols: 142, goalCol: 132, theme: 0,
-  build() {
-    ground(0, 18, 10); bolt(8, 8); bolt(10, 7); bolt(12, 8);
-    ground(19, 26, 8); bolt(22, 6); bolt(24, 6);
-    ground(30, 40, 9); spikes(34, 35, 8); girder(36, 40, 6); bolt(37, 5); bolt(39, 5);
-    ground(41, 48, 10); checkpoint(44, 9);
-    block(50, 51, 8, 8); bolt(50.5, 6);
-    ground(53, 62, 10); block(56, 56, 9, 9); block(57, 58, 8, 9); block(59, 62, 7, 9); bolt(60.5, 5);
-    girder(64, 66, 6); bolt(65, 5);
-    ground(68, 80, 10); spikes(71, 74, 9); girder(70, 75, 7); bolt(71, 6); bolt(73, 6); bolt(75, 6);
-    block(78, 79, 7, 9);
-    ground(81, 88, 10); checkpoint(84, 9);
-    block(91, 92, 8, 8); bolt(91.5, 6); block(95, 96, 6, 6); bolt(95.5, 4); block(99, 100, 8, 8); bolt(99.5, 6);
-    ground(102, 112, 10); spikes(104, 105, 9); girder(106, 107, 7); block(109, 110, 6, 9); bolt(109.5, 4);
-    ground(111, 141, 10); bolt(115, 8); bolt(117, 7); bolt(119, 8); spikes(122, 123, 9); bolt(122.5, 6);
-    block(140, 141, 0, 9);
-  },
-};
 
 // Reusable course sections. Each starts and ends on ground at row 10; widths are fixed so a level's size is known up front.
 // Every rise is at most 3 tiles and every gap at most 3 tiles, so all five robots can clear them.
@@ -680,13 +654,6 @@ function makeLevel(meta, list, dance) {
   return def;
 }
 
-const FREE_LEVELS = [
-  COURSE,
-  makeLevel({ name: "Loading dock", theme: 1 }, ["step", "spikeRun", "rest", "stones", "stairs", "rest", "girderPit", "spikeHop"], false),
-  makeLevel({ name: "Conveyor works", theme: 2 }, ["tower", "pillars", "rest", "spikeField", "highRoad", "rest", "stones", "spikeHop"], false),
-  makeLevel({ name: "Cooling towers", theme: 3 }, ["girderPit", "spikeHop", "rest", "highRoad", "pillars", "rest", "tower", "spikeField", "stones"], false),
-  makeLevel({ name: "Core reactor", theme: 4 }, ["pillars", "highRoad", "rest", "spikeHop", "girderPit", "spikeField", "rest", "highRoad", "stones", "tower", "spikeHop"], false),
-];
 
 // Dance battle campaign: tempo rises each level; rounds = { beats, moves, eighths }. The last rival is your dark clone.
 const DANCE_LEVELS = [
@@ -786,7 +753,9 @@ const DANCE_LEVELS = [
     ],
   };
 })();
-const levelList = () => state.gameMode === "dance" ? DANCE_LEVELS : FREE_LEVELS;
+// The story is the 11 hand-made levels; after them the game continues with generated endless levels.
+const STORY_LEN = DANCE_LEVELS.length;
+const levelList = () => DANCE_LEVELS;
 </script>
 <script>
 // Rig Runner · Dark clone and the hand-made hybrid bosses.
@@ -942,7 +911,7 @@ function genLevel(R, i, dance) {
   while (h < 10) { h = Math.min(10, h + ri(R, 1, 3)); flat(2); }
   const body = x, endW = dance ? 32 : 16, cols = body + endW;
   put(() => { ground(body, cols - 1, 10); bolt(body + 4, 8); bolt(body + 6, 7); bolt(body + 8, 8); block(cols - 2, cols - 1, 0, 9); });
-  const def = { name: `Sector ${i + 1}`, theme: i % THEMES.length, cols, goalCol: body + (dance ? 27 : 10), build: () => ops.forEach(f => f()), generated: true };
+  const def = { name: `Sector ${Math.max(0, i - STORY_LEN) + 1}`, theme: i % THEMES.length, cols, goalCol: body + (dance ? 27 : 10), build: () => ops.forEach(f => f()), generated: true };
   if (dance) def.rivalCol = body + 20;
   return def;
 }
@@ -1085,9 +1054,11 @@ const NAME_B = ["Stomper", "Twister", "Spinner", "Breaker", "Popper", "Krusher",
 const TAUNTS = ["Step up or step aside.", "My circuits were built for this.", "You call that a groove?", "Watch and weep.", "Spin to win.", "I never miss a beat.", "Bring the bass.", "Your moves are outdated.", "Prepare to be out-flared.", "Reboot your rhythm."];
 const SKILL_INFO = { ghost: ["Ghost", "moves turn into ? on your turn"], fake: ["Fake-out", "red moves are decoys: don't copy them"], blackout: ["Blackout", "the lights cut out for a beat"], encore: ["Encore", "one extra round"], double: ["Double time", "the last round is twice as busy"] };
 const BIPEDS = ["runner", "jumper", "slim", "tank"];
-const bossScaleFor = i => Math.min(1.8, 1 + 0.1 * Math.floor(i / 5));
+// i is the overall level index; e counts endless levels after the story (0 = the first one)
+const endlessOf = i => Math.max(0, i - STORY_LEN);
+const bossScaleFor = i => Math.min(1.8, 1 + 0.1 * Math.floor(endlessOf(i) / 5));
 function endlessBossSpec(i) {
-  const R = rng32(hashSeed(state.runSeed, i, 7)), set = Math.floor(i / 5), milestone = i % 5 === 4;
+  const e = endlessOf(i), R = rng32(hashSeed(state.runSeed, i, 7)), set = Math.floor(e / 5), milestone = e % 5 === 4;
   const pick = a => a[Math.floor(R() * a.length)];
   const nSk = milestone ? Math.min(3, 1 + set) : set === 0 ? 0 : set < 3 ? 1 : 2;
   const pool = Object.keys(SKILL_INFO), skills = [];
@@ -1099,7 +1070,7 @@ function endlessBossSpec(i) {
   let acc = R() < 0.3 + 0.12 * set ? pick(Object.keys(ACC)) : null;
   let name = pick(NAME_A) + " " + pick(NAME_B);
   // Wrangler: cowboy hat + laser lasso. Always the 3rd boss of a run, then now and then.
-  const wrangler = i === 2 || (i > 4 && R() < 0.12);
+  const wrangler = e === 0 || (e > 4 && R() < 0.12);   // the first endless boss is always a Wrangler
   if (wrangler) { acc = "hat"; name = pick(["Laser", "Neon", "Plasma", "Volt"]) + " " + pick(["Wrangler", "Rustler", "Outlaw", "Ranger"]); }
   let spec;
   if (!wrangler && R() < 0.2) {
@@ -1130,20 +1101,20 @@ function endlessRounds(i) {
 // generate, solve, and keep only a level the selected robot can finish
 function endlessLevel(i) {
   if (state.endCache && state.endCache.i === i) return state.endCache.def;
-  const dance = state.gameMode === "dance", t0 = performance.now();
+  const dance = true, t0 = performance.now();
   let def = null, tries = 0;
   for (; tries < 30 && !def; tries++) {
     const cand = genLevel(rng32(hashSeed(state.runSeed, i, tries + 1)), i, dance);
     loadLevel(cand);
     if (solveLevel(ch).ok) def = cand;
   }
-  if (!def) def = makeLevel({ name: `Sector ${i + 1}`, theme: i % THEMES.length }, ["rest", "rest", "rest"], dance);
+  if (!def) def = makeLevel({ name: `Sector ${endlessOf(i) + 1}`, theme: i % THEMES.length }, ["rest", "rest", "rest"], dance);
   def.tries = tries; def.genMs = performance.now() - t0;
   if (dance) { const spec = endlessBossSpec(i); def.bossSpec = spec; def.rivalChar = buildEndlessBoss(spec); def.bpm = Math.min(118, Math.round(88 + 1.5 * i)); def.rounds = endlessRounds(i); }
   state.endCache = { i, def };
   return def;
 }
-function bestKey() { return "rigrunner.best." + state.gameMode; }
+function bestKey() { return "rigrunner.best.story"; }
 function getBest() { try { return +localStorage.getItem(bestKey()) || 0; } catch (e) { return 0; } }
 function saveBest(n) { try { if (n > getBest()) localStorage.setItem(bestKey(), String(n)); } catch (e) {} }
 </script>
@@ -1214,7 +1185,7 @@ function touchesSpikes(b, W, H) {
   return hit;
 }
 let theme = THEMES[0];
-let levelDef = COURSE;
+let levelDef = DANCE_LEVELS[0];
 </script>
 <script>
 // Rig Runner · Sound: synth blips and the electro beat sequencer.
@@ -1485,8 +1456,7 @@ for (const ev of ["gesturestart", "gesturechange", "gestureend", "dblclick"]) do
 const state = { mode: "title", gameMode: "dance", levelIdx: 0, time: 0, runTime: 0, timing: false, collected: 0, totalTime: 0, totalBolts: 0, totalAcc: [] };
 let sel = "runner";
 try { const s = localStorage.getItem("rigrunner.robot"); if (s && CHARS[s]) sel = s; } catch (e) {}
-try { const m = localStorage.getItem("rigrunner.mode"); if (m === "dance" || m === "course") state.gameMode = m; } catch (e) {}
-try { state.endless = localStorage.getItem("rigrunner.endless") === "1"; } catch (e) {}
+
 let ch = CHARS[sel];
 const pl = {};
 let pose = {};
@@ -1499,7 +1469,9 @@ function resetPlayer(at) {
   pose = ch.kind === "spider" ? spiderGait(ch, 0, 0, 0) : bipedIdle(0);
 }
 function restartLevel() {
-  levelDef = state.endless && state.mode !== "title" ? endlessLevel(state.levelIdx) : levelList()[state.mode === "title" ? 0 : state.levelIdx];
+  // levels 1-11 are the story; from level 12 on, levels and bosses are generated (endless)
+  state.endless = state.mode !== "title" && state.levelIdx >= STORY_LEN;
+  levelDef = state.endless ? endlessLevel(state.levelIdx) : DANCE_LEVELS[state.mode === "title" ? 0 : state.levelIdx];
   loadLevel(levelDef);
   respawnAt = { x: spawn.c * T + T / 2, y: spawn.r * T };
   state.runTime = 0; state.timing = false; state.collected = 0; particles.length = 0; pops.length = 0; debris.length = 0; pl.shattered = false;
@@ -1514,18 +1486,21 @@ function play() {
   for (const k in input) input[k] = false;
 }
 // ---------- saved progress: one slot per mode (dance / free run) and length (campaign / endless) ----------
-const saveKey = () => `rigrunner.save.${state.gameMode}.${state.endless ? "endless" : "campaign"}`;
+// one save slot: the story and the endless levels after it are one game
+const saveKey = () => "rigrunner.save.story";
 function readSave() {
   try {
+    // keep progress from the old separate Dance campaign slot
+    if (!localStorage.getItem(saveKey()) && localStorage.getItem("rigrunner.save.dance.campaign"))
+      localStorage.setItem(saveKey(), localStorage.getItem("rigrunner.save.dance.campaign"));
     const v = JSON.parse(localStorage.getItem(saveKey()) || "null");
-    if (!v || typeof v.levelIdx !== "number" || !CHARS[v.robot]) return null;
-    if (!state.endless && v.levelIdx >= levelList().length) return null;
+    if (!v || typeof v.levelIdx !== "number" || v.levelIdx < 0 || !CHARS[v.robot]) return null;
     return v;
   } catch (e) { return null; }
 }
 function writeSave(levelIdx) {
   try {
-    localStorage.setItem(saveKey(), JSON.stringify({ levelIdx, robot: sel, runSeed: state.runSeed, cleared: state.endless ? levelIdx : state.cleared || 0,
+    localStorage.setItem(saveKey(), JSON.stringify({ levelIdx, robot: sel, runSeed: state.runSeed, cleared: levelIdx,
       totalTime: state.totalTime, totalBolts: state.totalBolts, totalAcc: state.totalAcc, at: Date.now() }));
   } catch (e) {}
 }
@@ -1542,13 +1517,12 @@ function refreshContinue() {
   const v = readSave(), cb = document.getElementById("continueBtn"), sb = document.getElementById("startBtn"), note = document.getElementById("saveNote");
   cb.hidden = !v; note.hidden = !v;
   sb.classList.toggle("ghost", !!v);
-  sb.textContent = state.endless ? "Start endless run" : state.gameMode === "dance" ? "Start level 1" : "Start course 1";
+  sb.textContent = "Start";
   if (v) {
-    const unit = state.gameMode === "course" && !state.endless ? "course" : "level";
-    cb.textContent = `Continue · ${unit} ${v.levelIdx + 1}${v.robot !== sel ? " as " + CHARS[v.robot].name : ""}`;
+    cb.textContent = `Continue · level ${v.levelIdx + 1}${v.robot !== sel ? " as " + CHARS[v.robot].name : ""}`;
     sb.textContent = "New game";
-    const when = new Date(v.at || Date.now());
-    note.textContent = `Saved progress: ${unit} ${v.levelIdx + 1} with ${CHARS[v.robot].name}${state.endless ? `, ${v.cleared} cleared this run` : ""} · ${when.toLocaleDateString()} ${when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. A new game replaces it.`;
+    const when = new Date(v.at || Date.now()), where = v.levelIdx >= STORY_LEN ? "endless battles" : "the story";
+    note.textContent = `Saved: level ${v.levelIdx + 1} (${where}) with ${CHARS[v.robot].name} · ${when.toLocaleDateString()} ${when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. A new game starts again from level 1.`;
   }
 }
 document.getElementById("continueBtn").addEventListener("click", continueGame);
@@ -1561,12 +1535,12 @@ function setStep(n) {
   card.querySelectorAll(".step").forEach(el => el.classList.toggle("on", +el.dataset.step === n));
   card.querySelectorAll("#stepDots li").forEach(li => { li.classList.toggle("on", +li.dataset.s === n); li.classList.toggle("done", +li.dataset.s < n); });
   document.getElementById("backBtn").hidden = n === 1;
-  const next = document.getElementById("nextBtn"); next.hidden = n === 3;
-  next.textContent = n === 1 ? "Next: pick robot" : "Next: start";
-  document.getElementById("summary").textContent = `${state.gameMode === "dance" ? "Dance battle" : "Free run"} · ${state.endless ? "Endless" : "Campaign"} · ${ch.name}`;
+  const next = document.getElementById("nextBtn"); next.hidden = n === 2;
+  next.textContent = "Next: start";
+  document.getElementById("summary").textContent = `Playing as ${ch.name}`;
   card.scrollTop = 0;
 }
-document.getElementById("nextBtn").addEventListener("click", () => setStep(Math.min(3, titleStep + 1)));
+document.getElementById("nextBtn").addEventListener("click", () => setStep(Math.min(2, titleStep + 1)));
 document.getElementById("backBtn").addEventListener("click", () => setStep(Math.max(1, titleStep - 1)));
 try { stepMQ.addEventListener("change", () => setStep(titleStep)); } catch (e) {}
 function startGame() {
@@ -1580,8 +1554,8 @@ function startLevel() {
   restartLevel();
   writeSave(state.levelIdx);
   const sub = state.endless && levelDef.bossSpec ? `${levelDef.bpm} BPM · boss size ${levelDef.bossSpec.scale.toFixed(1)}×` : `${levelDef.bpm} BPM`;
-  if (state.gameMode === "dance") { music.intensity = 1; music.start(levelDef.bpm); banner = { text: `Level ${state.levelIdx + 1} · ${levelDef.name}`, sub, until: state.time + 2.4 }; }
-  else { music.stop(); if (state.endless) banner = { text: `Level ${state.levelIdx + 1} · ${levelDef.name}`, sub: "Endless free run", until: state.time + 2 }; }
+  music.intensity = 1; music.start(levelDef.bpm);
+  banner = { text: `Level ${state.levelIdx + 1} · ${levelDef.name}`, sub: state.levelIdx === STORY_LEN ? `Endless battles begin · ${sub}` : sub, until: state.time + 2.4 };
   play();
 }
 // ---------- pause ----------
@@ -1601,7 +1575,7 @@ function closePause() { state.paused = false; pauseCard.hidden = true; panel.hid
 function resumeGame() {
   if (!state.paused) return;
   closePause();
-  if (state.gameMode === "dance") {
+  {
     music.intensity = battle ? 2 : 1; music.start(levelDef.bpm);
     // the battle runs on the music clock, so a paused battle restarts from its countdown
     if (battle && !battle.outcome) { battle = null; rival.dance = null; startBattle(); }
@@ -1645,32 +1619,17 @@ ORDER.forEach((k, i) => {
   picker.appendChild(b);
   previews.push({ k, cv: b.querySelector("canvas"), phase: i * 1.3 });
 });
-document.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
-document.querySelectorAll("[data-len]").forEach(b => b.addEventListener("click", () => setLen(b.dataset.len === "endless")));
-function setLen(endless) {
-  state.endless = endless;
-  try { localStorage.setItem("rigrunner.endless", endless ? "1" : "0"); } catch (e) {}
-  setMode(state.gameMode);
-}
-function setMode(m) {
-  state.gameMode = m;
-  try { localStorage.setItem("rigrunner.mode", m); } catch (e) {}
-  document.querySelectorAll("[data-mode]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
-  document.querySelectorAll("[data-len]").forEach(b => b.setAttribute("aria-pressed", String((b.dataset.len === "endless") === !!state.endless)));
-  const dance = m === "dance", best = getBest();
-  document.getElementById("modeText").textContent = dance
-    ? "Clear eleven levels to electro beats. A rival guards each dock: it dances a routine, then you copy it on the beat to get past. Beat the four robots, then six hybrid bosses built from their parts, then your own dark clone."
-    : "Five courses across the plant, from the assembly bay to the core reactor. Reach each charging dock, grab the brass nuts, and stay off the spikes.";
-  if (state.endless) document.getElementById("modeText").textContent = (dance
-    ? "Endless dance battle. Every level is freshly generated and checked to be beatable before you play it. Each ends with a randomly built boss: mixed parts, colours, accessories and skills. Bosses grow every 5 levels, and every 5th boss is your dark clone."
-    : "Endless free run. Every level is freshly generated with ramps, steps, gaps and spikes, and checked to be beatable before you play it. Levels get longer and harder as you go.")
-    + (best ? ` Your best: ${best} level${best === 1 ? "" : "s"}.` : "");
-  document.getElementById("titleEyebrow").textContent = (dance ? "Dance battle · " : "Free run · ") + (state.endless ? "Endless" : dance ? "11 levels" : "5 courses");
-  document.getElementById("titleEyebrow").classList.toggle("neon", dance);
-  document.getElementById("controls").innerHTML = `<dt>Run</dt><dd>← → or A D</dd><dt>Jump</dt><dd>Space, W or ↑. Hold for a higher jump</dd>` +
-    (dance ? `<dt>Dance</dt><dd class="moves"><span><kbd>↑</kbd>Head spin</span><span><kbd>←</kbd>Windmill</span><span><kbd>↓</kbd>Backspin</span><span><kbd>→</kbd>Air freeze</span><span><kbd>Space</kbd>Flare</span></dd>`
-           : `<dt>Drop</dt><dd>↓ or S through orange girders</dd>`);
-  document.getElementById("startBtn").textContent = state.endless ? "Start endless run" : dance ? "Start level 1" : "Start course 1";
+// The title text and controls (there is one game: the story, then endless battles).
+function refreshMenu() {
+  const best = getBest();
+  document.getElementById("modeText").textContent =
+    "Eleven story levels to electro beats. A rival guards each dock: it dances a routine, then you copy it on the beat to get past. " +
+    "Beat the four robots, six hybrid bosses and your own dark clone, then keep going: endless levels with new bosses that grow every five levels." +
+    (best > STORY_LEN ? ` Your best: level ${best}.` : "");
+  document.getElementById("titleEyebrow").textContent = "Dance battles · 11 story levels, then endless";
+  document.getElementById("titleEyebrow").classList.add("neon");
+  document.getElementById("controls").innerHTML = `<dt>Run</dt><dd>← → or A D</dd><dt>Jump</dt><dd>Space, W or ↑. Hold for a higher jump</dd><dt>Drop</dt><dd>↓ or S through orange girders</dd>` +
+    `<dt>Dance</dt><dd class="moves"><span><kbd>↑</kbd>Head spin</span><span><kbd>←</kbd>Windmill</span><span><kbd>↓</kbd>Backspin</span><span><kbd>→</kbd>Air freeze</span><span><kbd>Space</kbd>Flare</span></dd>`;
   refreshContinue();
   document.getElementById("hudLvlBox").hidden = false;
   if (state.mode === "title") restartLevel();
@@ -1962,7 +1921,7 @@ function updateBattle(dt) {
       const acc = Math.round(B.acc * 100);
       showCard(`<span class="eyebrow neon">Level ${state.levelIdx + 1} · ${levelDef.name}</span><h1>Out-danced</h1>
         <p>${rival.ch.name} kept the dock and shook you to pieces. You hit ${acc}% of the moves; you need ${Math.round(PASS * 100)}% to win. Watch the routine, then copy each move on its beat.</p>
-        <div class="actions"><button class="btn" data-act="primary" type="button">Battle again</button>${state.endless ? `<button class="btn ghost" data-act="end" type="button">End run</button>` : `<button class="btn ghost" data-act="menu" type="button">Menu</button>`}</div>`,
+        <div class="actions"><button class="btn" data-act="primary" type="button">Battle again</button>${state.endless ? `<button class="btn ghost" data-act="end" type="button">End run</button>` : ""}<button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
         () => { play(); battle = null; rival.dance = null; for (let i = debris.length - 1; i >= 0; i--) if (debris[i].owner === "player") debris.splice(i, 1); pl.shattered = false; pl.flash = 0.6; startBattle(); });
     }
   }
@@ -2126,13 +2085,20 @@ function animate(dt, frozen) {
   blendPose(pose, target, 1 - Math.exp(-dt * (air ? 12 : 26)));
 }
 
+// Ending an endless run keeps the story finished: the save moves to the start of a fresh endless run.
+function newEndlessRun() {
+  state.levelIdx = STORY_LEN; state.runSeed = (Math.random() * 2147483647) | 0; state.endCache = null;
+}
 function endRun() {
-  const n = state.cleared || 0, dance = state.gameMode === "dance";
-  saveBest(n); clearSave(); music.stop(); battle = null; document.body.classList.remove("battling");
-  showCard(`<span class="eyebrow ${dance ? "neon" : ""}">Endless run over · ${ch.name}</span><h1>${n} level${n === 1 ? "" : "s"} cleared</h1>
-    <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.totalBolts}</dd><dt>Best</dt><dd>${getBest()} levels</dd></dl>
-    <div class="actions"><button class="btn" data-act="primary" type="button">Play again</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
-    () => { state.finished = false; startGame(); });
+  const n = state.cleared || 0;
+  saveBest(n); music.stop(); battle = null; document.body.classList.remove("battling");
+  const reached = n;
+  newEndlessRun(); writeSave(STORY_LEN);
+  showCard(`<span class="eyebrow neon">Endless run over · ${ch.name}</span><h1>Reached level ${reached}</h1>
+    <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.totalBolts}</dd><dt>Best</dt><dd>level ${getBest()}</dd></dl>
+    <p>The story stays cleared. Your next run starts again at level ${STORY_LEN + 1} with new levels and bosses.</p>
+    <div class="actions"><button class="btn" data-act="primary" type="button">New endless run</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
+    () => { state.finished = false; newEndlessRun(); startLevel(); });
 }
 function finishLevel() {
   state.finished = true; state.timing = false; pl.vx = 0;
@@ -2143,40 +2109,22 @@ function finishLevel() {
   setTimeout(() => {
     state.finished = true;
     state.totalTime += state.runTime; state.totalBolts += state.collected;
-    if (state.endless || state.levelIdx + 1 < levelList().length) writeSave(state.levelIdx + 1); else clearSave();
+    writeSave(state.levelIdx + 1);   // the game always continues: story, then endless
     if (state.endless) {
-      const i = state.levelIdx, dance = state.gameMode === "dance";
+      const i = state.levelIdx, dance = true;
       state.cleared = i + 1; saveBest(state.cleared);
       let extra = "";
       if (dance) {
         const sp = levelDef.bossSpec, acc = state.totalAcc[state.totalAcc.length - 1] || 0;
         extra += `<dt>Dance</dt><dd>${Math.round(acc * 100)}% against ${rival ? rival.ch.name : "the boss"}</dd>`;
         const nx = endlessBossSpec(i + 1);
-        var note = (sp && sp.milestone ? `<p>Set ${Math.floor(i / 5) + 1} cleared. The next bosses grow to ${bossScaleFor(i + 1).toFixed(1)}×.</p>` : "") +
+        var note = (sp && sp.milestone ? `<p>Set ${Math.floor(endlessOf(i) / 5) + 1} cleared. The next bosses grow to ${bossScaleFor(i + 1).toFixed(1)}×.</p>` : "") +
           `<p>Next boss: ${nx.name} · ${nx.blurb}.</p>`;
       }
       showCard(`<span class="eyebrow ${dance ? "neon" : ""}">Endless · level ${i + 1} cleared</span><h1>Docked</h1>
-        <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.collected} of ${bolts.length}</dd>${extra}<dt>Best</dt><dd>${getBest()} levels</dd></dl>${note || ""}
+        <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.collected} of ${bolts.length}</dd>${extra}<dt>Best</dt><dd>level ${getBest()}</dd></dl>${note || ""}
         <div class="actions"><button class="btn" data-act="primary" type="button">Next level</button><button class="btn ghost" data-act="end" type="button">End run</button></div>`,
         () => { state.finished = false; state.levelIdx++; startLevel(); });
-      return;
-    }
-    if (state.gameMode === "course") {
-      const lastC = state.levelIdx >= FREE_LEVELS.length - 1;
-      const stats = `<dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.collected} of ${bolts.length}${all ? " · all of them" : ""}</dd></dl>`;
-      if (!lastC) {
-        const nxt = FREE_LEVELS[state.levelIdx + 1];
-        showCard(`<span class="eyebrow">Course ${state.levelIdx + 1} of ${FREE_LEVELS.length} cleared · ${levelDef.name}</span><h1>Docked</h1>${stats}
-          <p>Next: ${nxt.name}.</p>
-          <div class="actions"><button class="btn" data-act="primary" type="button">Next course</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
-          () => { state.finished = false; state.levelIdx++; startLevel(); });
-      } else {
-        showCard(`<span class="eyebrow">All ${FREE_LEVELS.length} courses cleared · ${ch.name}</span><h1>Plant cleared</h1>
-          <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.totalBolts}</dd></dl>
-          <p>Every dock reached. Try another robot, or go for a faster time.</p>
-          <div class="actions"><button class="btn" data-act="primary" type="button">Play again</button><button class="btn ghost" data-act="menu" type="button">Change robot</button></div>`,
-          () => { state.finished = false; startGame(); });
-      }
       return;
     }
     const acc = state.totalAcc[state.totalAcc.length - 1] || 0;
@@ -2184,18 +2132,18 @@ function finishLevel() {
     if (!last) {
       const nxt = DANCE_LEVELS[state.levelIdx + 1];
       showCard(`<span class="eyebrow neon">Level ${state.levelIdx + 1} cleared · ${levelDef.name}</span><h1>Docked</h1>
-        <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.collected} of ${bolts.length}</dd><dt>Dance</dt><dd>${Math.round(acc * 100)}% against ${rival.ch.name}</dd></dl>
+        <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.collected} of ${bolts.length}</dd><dt>Dance</dt><dd>${Math.round(acc * 100)}% against ${rival ? rival.ch.name : "the rival"}</dd></dl>
         <p>Next: ${nxt.name}, ${nxt.bpm} BPM. ${nxt.clone ? "The final rival is waiting: your own dark clone." : nxt.boss ? "A hybrid boss guards the next dock." : "The routines get longer and faster."}</p>
         <div class="actions"><button class="btn" data-act="primary" type="button">Next level</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
         () => { state.finished = false; state.levelIdx++; startLevel(); });
     } else {
       const avg = state.totalAcc.reduce((a, b) => a + b, 0) / Math.max(1, state.totalAcc.length);
       music.intensity = 2;
-      showCard(`<span class="eyebrow neon">All ${DANCE_LEVELS.length} levels cleared · ${ch.name}</span><h1>Dance floor champion</h1>
+      showCard(`<span class="eyebrow neon">Story cleared · ${ch.name}</span><h1>Dance floor champion</h1>
         <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.totalBolts}</dd><dt>Dance</dt><dd>${Math.round(avg * 100)}% average accuracy</dd></dl>
-        <p>Every rival out-danced, even your own dark clone. Try another robot, or go for a perfect routine.</p>
-        <div class="actions"><button class="btn" data-act="primary" type="button">Play again</button><button class="btn ghost" data-act="menu" type="button">Change robot</button></div>`,
-        () => { state.finished = false; startGame(); });
+        <p>Every rival out-danced, even your own dark clone. The story is done, but the dance floor isn't: endless levels with new bosses start at level ${STORY_LEN + 1}, and the bosses grow every five levels.</p>
+        <div class="actions"><button class="btn" data-act="primary" type="button">Keep going</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
+        () => { state.finished = false; state.levelIdx = STORY_LEN; state.runSeed = state.runSeed || (Math.random() * 2147483647) | 0; state.endCache = null; startLevel(); });
     }
   }, 900);
 }
@@ -2596,7 +2544,7 @@ function render(dt) {
 const hudBolts = document.getElementById("hudBolts"), hudTime = document.getElementById("hudTime"), hudArmor = document.getElementById("hudArmor"), hudLvl = document.getElementById("hudLvl");
 function updateHud() {
   hudBolts.textContent = `${state.collected} / ${bolts.length}`; hudTime.textContent = state.runTime.toFixed(2); hudArmor.textContent = pl.armor ?? 0;
-  hudLvl.textContent = state.endless ? String(state.levelIdx + 1) : `${state.levelIdx + 1} / ${levelList().length}`;
+  hudLvl.textContent = state.endless ? String(state.levelIdx + 1) : `${state.levelIdx + 1} / ${STORY_LEN}`;
 }
 </script>
 <script>
@@ -2624,13 +2572,13 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
 resize();
 Promise.all([hatReady, ...ORDER.map(k => loadChar(CHARS[k]))]).then(() => {
   ORDER.forEach(k => calibrate(CHARS[k]));
-  setMode(state.gameMode);
+  refreshMenu();
   pick(sel);
   setStep(1);
   requestAnimationFrame(t => { last = t; frame(t); });
 });
 window.__game = { dbg: { bipedBreak, spiderBreak, drawChar, bipedRun, bipedIdle, spiderGait, spiderAir, B_RISE, B_FALL, B_DANCE, dancePose, spiderDance }, state, pl, input, music,
-  get battle() { return battle; }, get rival() { return rival; }, get pose() { return pose; }, hintsCount: () => hints.length, rivalOff: () => { rival = null; battle = null; }, update, pressJump, startLevelForTest: () => startLevel(), startGame, continueGame, readSave, pick, setMode, setLen, showTitle, battleInput, CHARS, HYBRIDS, makeHybrid, genLevel, solveLevel, loadLevel, endlessLevel, endlessBossSpec, buildEndlessBoss, rng32, hashSeed, get levelDef() { return levelDef; }, FREE_LEVELS, DANCE_LEVELS, startLevel, get grid() { return grid; },
+  get battle() { return battle; }, get rival() { return rival; }, get pose() { return pose; }, hintsCount: () => hints.length, rivalOff: () => { rival = null; battle = null; }, update, pressJump, startLevelForTest: () => startLevel(), startGame, continueGame, readSave, pick, refreshMenu, showTitle, STORY_LEN, battleInput, CHARS, HYBRIDS, makeHybrid, genLevel, solveLevel, loadLevel, endlessLevel, endlessBossSpec, buildEndlessBoss, rng32, hashSeed, get levelDef() { return levelDef; }, DANCE_LEVELS, startLevel, get grid() { return grid; },
   get ch() { return ch; }, get cam() { return [camX, camY, zoom]; } };
 </script>
 </body>

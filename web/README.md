@@ -1,6 +1,6 @@
 # Rig Runner (website version)
 
-A browser platformer starring robots built from rig parts: five playable robots, a dance battle campaign (11 levels, hybrid bosses, a dark-clone finale), five free-run courses, and endless modes whose levels and bosses are generated on the fly and proven beatable before you play them.
+A browser platformer starring robots built from rig parts: five playable robots and one continuous game. Eleven story levels end in dance battles against rival robots, hybrid bosses and your own dark clone; after the story the game keeps going with endless levels and bosses that are generated on the fly, proven beatable before you play them, and grow every five levels.
 
 Plain HTML, CSS and JavaScript. No framework and no build step.
 
@@ -14,7 +14,7 @@ js/                  classic scripts sharing one global scope, loaded in this or
   characters.js        robot definitions (rig joints, physics, abilities) and part loading
   poses.js             idle, run, jump, breakdance and lasso poses
   rig.js               kinematics: pose -> placed part images; drawing a character
-  levels.js            tiles, themes, campaign levels, reusable course sections
+  levels.js            tiles, themes, the 11 story levels, reusable course sections
   bosses.js            dark clone and the hand-made hybrid bosses
   generator.js         endless level generator (seeded)
   solver.js            proves a level can be finished, using the game's own physics
@@ -74,7 +74,7 @@ npm test              # quick run, about a minute
 npm test -- --full    # 2,000 generated levels, ~18,000 replayed moves, a real-time dance battle
 ```
 
-The suite checks that the page loads cleanly, every campaign level can be finished by every robot, generated endless levels are all proven beatable, the solver's predicted jumps and drops match the real game, ramps are walkable, drop shafts really require dropping, saves survive a reload, and a dance battle can be won.
+The suite checks that the page loads cleanly, every story level can be finished by every robot, the story flows into endless levels, generated endless levels are all proven beatable, the solver's predicted jumps and drops match the real game, ramps are walkable, drop shafts really require dropping, saves survive a reload, and a dance battle can be won.
 
 ## Single-file version
 

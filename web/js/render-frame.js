@@ -22,5 +22,5 @@ function render(dt) {
 const hudBolts = document.getElementById("hudBolts"), hudTime = document.getElementById("hudTime"), hudArmor = document.getElementById("hudArmor"), hudLvl = document.getElementById("hudLvl");
 function updateHud() {
   hudBolts.textContent = `${state.collected} / ${bolts.length}`; hudTime.textContent = state.runTime.toFixed(2); hudArmor.textContent = pl.armor ?? 0;
-  hudLvl.textContent = state.endless ? String(state.levelIdx + 1) : `${state.levelIdx + 1} / ${levelList().length}`;
+  hudLvl.textContent = state.endless ? String(state.levelIdx + 1) : `${state.levelIdx + 1} / ${STORY_LEN}`;
 }
