@@ -159,7 +159,34 @@ function check(name, ok, detail) { results.push({ name, ok, detail }); console.l
   check("story flows into endless battles", /Keep going/i.test(champ) && cont.lvl === 11 && cont.endless && cont.generated, `level ${cont.lvl + 1}, boss ${cont.boss}`);
   await page.evaluate(() => { localStorage.clear(); __game.showTitle(); });
 
-  // 7. (full) A real-time dance battle with on-beat input is won and the rival falls apart
+  // 7. Energy: bolts fill it, falls cost 3 and return bolts, 0 is game over, and a retry restarts with 5
+  await page.evaluate(() => { localStorage.clear(); __game.showTitle(); __game.pick("runner"); __game.startGame(); });
+  await page.waitForTimeout(300);
+  const flow = await page.evaluate(async () => {
+    const G = __game, st = G.state, pl = G.pl, r = { start: st.energy };
+    const tick = n => { for (let i = 0; i < n; i++) G.update(1 / 60); };
+    // collect one bolt
+    const bl = G.boltsList();
+    const b = bl.find(x => !x.got);
+    pl.x = b.x - G.ch.W / 2; pl.y = b.y - G.ch.H / 2; pl.vx = pl.vy = 0; tick(2);
+    r.afterBolt = st.energy; r.gotBolt = b.got;
+    // fall off the world: costs 3 and puts the bolt back
+    pl.y = 12 * 48 + 300; tick(2); r.afterFall = st.energy; r.boltBack = !b.got;
+    tick(60);   // death animation, respawn
+    // keep falling until out of energy
+    let guard = 0;
+    while (st.mode === "play" && guard++ < 10) { pl.dead = 0; pl.y = 12 * 48 + 300; tick(2); tick(60); }
+    r.mode = st.mode; r.card = document.getElementById("winCard").innerText.slice(0, 60);
+    return r;
+  });
+  await page.click("#winCard [data-act=primary]"); await page.waitForTimeout(300);
+  const retry = await page.evaluate(() => ({ e: __game.state.energy, lvl: __game.state.levelIdx, mode: __game.state.mode }));
+  check("energy: bolts add, falls cost 3 and return bolts, 0 is game over, retry gives 5",
+    flow.afterBolt === flow.start + 1 && flow.gotBolt && flow.afterFall === flow.afterBolt - 3 && flow.boltBack && flow.mode === "card" && /Game over/i.test(flow.card) && retry.e === 5 && retry.mode === "play",
+    `start ${flow.start}, +bolt ${flow.afterBolt}, after fall ${flow.afterFall}, then "${flow.card.split("\n")[1] || flow.card}", retry with ${retry.e}`);
+  await page.evaluate(() => { localStorage.clear(); __game.showTitle(); });
+
+  // 8. (full) A real-time dance battle with on-beat input is won and the rival falls apart
   if (FULL) {
     await page.evaluate(() => { const G = __game; G.showTitle(); G.pick("runner"); G.startGame(); });
     await page.waitForTimeout(300);

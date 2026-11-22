@@ -21,6 +21,11 @@ function render(dt) {
 
 const hudBolts = document.getElementById("hudBolts"), hudTime = document.getElementById("hudTime"), hudArmor = document.getElementById("hudArmor"), hudLvl = document.getElementById("hudLvl");
 function updateHud() {
-  hudBolts.textContent = `${state.collected} / ${bolts.length}`; hudTime.textContent = state.runTime.toFixed(2); hudArmor.textContent = pl.armor ?? 0;
+  const cap = Math.max(1, bolts.length), e = state.energy ?? 0;
+  document.getElementById("hudEnergy").textContent = `${e} / ${bolts.length}`;
+  document.getElementById("hudEbar").style.width = `${Math.min(100, (e / cap) * 100)}%`;
+  hudBolts.classList.toggle("max", e >= bolts.length && bolts.length > 0);
+  hudBolts.classList.toggle("low", e > 0 && e <= ENERGY.fall);
+  hudTime.textContent = state.runTime.toFixed(2); hudArmor.textContent = pl.armor ?? 0;
   hudLvl.textContent = state.endless ? String(state.levelIdx + 1) : `${state.levelIdx + 1} / ${STORY_LEN}`;
 }

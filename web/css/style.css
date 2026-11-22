@@ -23,7 +23,15 @@ body.menu .hud { visibility: hidden; }
 .hud .stat { display: flex; flex-direction: column; gap: 2px; }
 .hud .lbl { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
 .hud .val { font-size: 22px; font-weight: 700; color: var(--ink); }
-.hud .val.bolts { color: var(--hazard); }
+.hud .val.bolts { color: var(--hazard); display: flex; align-items: center; gap: 8px; }
+.hud .ebar { display: block; width: 74px; height: 10px; background: rgba(201, 211, 219, 0.15); border: 1px solid rgba(242, 162, 58, 0.5); position: relative; }
+.hud .ebar b { position: absolute; inset: 0 auto 0 0; background: var(--hazard); transition: width 0.2s; }
+.hud .val.bolts.max { color: #ffe08a; text-shadow: 0 0 10px rgba(255, 224, 138, 0.6); }
+.hud .val.bolts.max .ebar b { background: #ffe08a; box-shadow: 0 0 10px rgba(255, 224, 138, 0.7); }
+.hud .val.bolts.low { color: #ff7a85; animation: lowpulse 0.8s ease-in-out infinite alternate; }
+.hud .val.bolts.low .ebar { border-color: #ff7a85; } .hud .val.bolts.low .ebar b { background: #ff5e6c; }
+@keyframes lowpulse { from { opacity: 1; } to { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { .hud .val.bolts.low { animation: none; } }
 .hud .val.armor { color: var(--go); }
 .hud .val.lvl { color: var(--neon); }
 .hud .spacer { flex: 1; }

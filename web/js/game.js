@@ -21,6 +21,7 @@ function restartLevel() {
   state.endless = state.mode !== "title" && state.levelIdx >= STORY_LEN;
   levelDef = state.endless ? endlessLevel(state.levelIdx) : DANCE_LEVELS[state.mode === "title" ? 0 : state.levelIdx];
   loadLevel(levelDef);
+  levelEnergyStart();
   respawnAt = { x: spawn.c * T + T / 2, y: spawn.r * T };
   state.runTime = 0; state.timing = false; state.collected = 0; particles.length = 0; pops.length = 0; debris.length = 0; pl.shattered = false;
   battle = null; banner = null; state.finished = false; document.body.classList.remove("battling");
@@ -49,7 +50,7 @@ function readSave() {
 function writeSave(levelIdx) {
   try {
     localStorage.setItem(saveKey(), JSON.stringify({ levelIdx, robot: sel, runSeed: state.runSeed, cleared: levelIdx,
-      totalTime: state.totalTime, totalBolts: state.totalBolts, totalAcc: state.totalAcc, at: Date.now() }));
+      totalTime: state.totalTime, totalBolts: state.totalBolts, totalAcc: state.totalAcc, energy: state.carry ?? ENERGY.start, at: Date.now() }));
   } catch (e) {}
 }
 function clearSave() { try { localStorage.removeItem(saveKey()); } catch (e) {} }
@@ -58,7 +59,7 @@ function continueGame() {
   audio.unlock();
   if (v.robot !== sel) pick(v.robot);
   Object.assign(state, { levelIdx: v.levelIdx, runSeed: v.runSeed | 0, cleared: v.cleared || 0, totalTime: v.totalTime || 0, totalBolts: v.totalBolts || 0,
-    totalAcc: Array.isArray(v.totalAcc) ? v.totalAcc : [], endCache: null });
+    totalAcc: Array.isArray(v.totalAcc) ? v.totalAcc : [], endCache: null, carry: typeof v.energy === "number" ? v.energy : ENERGY.start });
   startLevel();
 }
 function refreshContinue() {
@@ -93,7 +94,7 @@ document.getElementById("backBtn").addEventListener("click", () => setStep(Math.
 try { stepMQ.addEventListener("change", () => setStep(titleStep)); } catch (e) {}
 function startGame() {
   audio.unlock();
-  state.levelIdx = 0; state.totalTime = 0; state.totalBolts = 0; state.totalAcc = []; state.cleared = 0;
+  state.levelIdx = 0; state.totalTime = 0; state.totalBolts = 0; state.totalAcc = []; state.cleared = 0; state.carry = ENERGY.start;
   state.runSeed = (Math.random() * 2147483647) | 0; state.endCache = null;
   startLevel();
 }

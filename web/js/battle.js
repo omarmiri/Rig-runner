@@ -170,8 +170,9 @@ function updateBattle(dt) {
       document.body.classList.remove("battling");
     } else {
       const acc = Math.round(B.acc * 100);
+      if (loseEnergy(ENERGY.battle, pl.x + ch.W / 2, pl.y)) { gameOver(); return; }
       showCard(`<span class="eyebrow neon">Level ${state.levelIdx + 1} · ${levelDef.name}</span><h1>Out-danced</h1>
-        <p>${rival.ch.name} kept the dock and shook you to pieces. You hit ${acc}% of the moves; you need ${Math.round(PASS * 100)}% to win. Watch the routine, then copy each move on its beat.</p>
+        <p>${rival.ch.name} kept the dock and shook you to pieces: <b>-${ENERGY.battle} energy</b> (${state.energy} left, and the bolts went back into the level). You hit ${acc}% of the moves; you need ${Math.round(PASS * 100)}% to win.</p>
         <div class="actions"><button class="btn" data-act="primary" type="button">Battle again</button>${state.endless ? `<button class="btn ghost" data-act="end" type="button">End run</button>` : ""}<button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
         () => { play(); battle = null; rival.dance = null; for (let i = debris.length - 1; i >= 0; i--) if (debris[i].owner === "player") debris.splice(i, 1); pl.shattered = false; pl.flash = 0.6; startBattle(); });
     }

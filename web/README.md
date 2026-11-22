@@ -4,6 +4,10 @@ A browser platformer starring robots built from rig parts: five playable robots 
 
 Plain HTML, CSS and JavaScript. No framework and no build step.
 
+## Energy
+
+Bolts are energy. Each level's energy bar holds as many bolts as the level has, so collecting them all gives max energy. You start a level with the energy you finished the last one with (at least 3; a new game starts with 5). Falling off or hitting spikes costs 3 and those bolts go back to their spots; losing a dance-off costs 5. Running out is game over: in the story you retry that level with 5 energy, in endless the run ends. Tune the numbers in `ENERGY` at the top of the energy section in `js/effects.js`.
+
 ## Folder layout
 
 ```

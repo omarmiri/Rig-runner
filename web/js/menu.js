@@ -18,7 +18,8 @@ function refreshMenu() {
   const best = getBest();
   document.getElementById("modeText").textContent =
     "Eleven story levels to electro beats. A rival guards each dock: it dances a routine, then you copy it on the beat to get past. " +
-    "Beat the four robots, six hybrid bosses and your own dark clone, then keep going: endless levels with new bosses that grow every five levels." +
+    "Beat the four robots, six hybrid bosses and your own dark clone, then keep going: endless levels with new bosses that grow every five levels. " +
+    "Bolts are your energy: grab them all for max energy. A fall costs 3, a lost dance-off costs 5, and running out is game over." +
     (best > STORY_LEN ? ` Your best: level ${best}.` : "");
   document.getElementById("titleEyebrow").textContent = "Dance battles · 11 story levels, then endless";
   document.getElementById("titleEyebrow").classList.add("neon");

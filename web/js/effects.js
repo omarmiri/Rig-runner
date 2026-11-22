@@ -21,10 +21,41 @@ function overlapsTiles(x, y, w, h, fn) {
   for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) fn(tileAt(c, r), c, r);
 }
 
+// ---------- energy: your bolts ----------
+// Each level's energy bar holds as many bolts as the level has; collect them all for MAX ENERGY.
+// You start a level with what you finished the last one with (at least ENERGY.minStart).
+// Falling or spikes cost ENERGY.fall, losing a dance-off costs ENERGY.battle; lost bolts go back
+// to their spots in the level. Reaching 0 is game over.
+const ENERGY = { start: 5, minStart: 3, fall: 3, battle: 5 };
+function levelEnergyStart() {
+  const cap = bolts.length;
+  state.energy = Math.max(Math.min(ENERGY.minStart, cap), Math.min(cap, state.carry ?? ENERGY.start));
+  state.boltLog = []; state.maxShown = state.energy >= cap;
+}
+function gainBolt(b) {
+  state.boltLog.push(b);
+  if (state.energy < bolts.length) state.energy++;
+  if (state.energy >= bolts.length && !state.maxShown) {
+    state.maxShown = true;
+    pop(pl.x + ch.W / 2, pl.y - 40, "MAX ENERGY", "#ffe08a", 26);
+    audio.blip(660, 1320, 0.12, "square", 0.05); setTimeout(() => audio.blip(990, 1980, 0.18, "square", 0.05), 110);
+  }
+}
+// returns true when this leaves you out of energy
+function loseEnergy(n, x, y) {
+  const before = state.energy;
+  state.energy = Math.max(0, state.energy - n);
+  // the lost bolts drop back to where they were picked up
+  for (let k = 0; k < before - state.energy && state.boltLog.length; k++) { const b = state.boltLog.pop(); b.got = false; burst(b.x, b.y, 8, "#f2c46a", 120, 20); }
+  if (state.energy < bolts.length) state.maxShown = false;
+  pop(x, y - 30, `-${n} ENERGY`, "#ff5e6c", 22);
+  return state.energy <= 0;
+}
 function die() {
   if (pl.dead) return;
   pl.dead = 0.6; audio.blip(320, 60, 0.35, "sawtooth", 0.07);
   burst(pl.x + ch.W / 2, pl.y + ch.H / 2, 24, "#f2a23a", 260);
+  pl.outOfEnergy = loseEnergy(ENERGY.fall, Math.max(camX + 80, Math.min(camX + viewW - 80, pl.x + ch.W / 2)), Math.min(pl.y, ROWS * T - 120));
 }
 function spikeHit() {
   if (pl.hurtT > 0 || pl.dead) return;

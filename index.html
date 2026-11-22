@@ -48,7 +48,15 @@ body.menu .hud { visibility: hidden; }
 .hud .stat { display: flex; flex-direction: column; gap: 2px; }
 .hud .lbl { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
 .hud .val { font-size: 22px; font-weight: 700; color: var(--ink); }
-.hud .val.bolts { color: var(--hazard); }
+.hud .val.bolts { color: var(--hazard); display: flex; align-items: center; gap: 8px; }
+.hud .ebar { display: block; width: 74px; height: 10px; background: rgba(201, 211, 219, 0.15); border: 1px solid rgba(242, 162, 58, 0.5); position: relative; }
+.hud .ebar b { position: absolute; inset: 0 auto 0 0; background: var(--hazard); transition: width 0.2s; }
+.hud .val.bolts.max { color: #ffe08a; text-shadow: 0 0 10px rgba(255, 224, 138, 0.6); }
+.hud .val.bolts.max .ebar b { background: #ffe08a; box-shadow: 0 0 10px rgba(255, 224, 138, 0.7); }
+.hud .val.bolts.low { color: #ff7a85; animation: lowpulse 0.8s ease-in-out infinite alternate; }
+.hud .val.bolts.low .ebar { border-color: #ff7a85; } .hud .val.bolts.low .ebar b { background: #ff5e6c; }
+@keyframes lowpulse { from { opacity: 1; } to { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { .hud .val.bolts.low { animation: none; } }
 .hud .val.armor { color: var(--go); }
 .hud .val.lvl { color: var(--neon); }
 .hud .spacer { flex: 1; }
@@ -162,7 +170,7 @@ body.menu .touch { display: none !important; }
 <div class="hud">
   <div class="stat" id="hudLvlBox" hidden><span class="lbl">Level</span><span class="val lvl" id="hudLvl">1</span></div>
   <div class="stat"><span class="lbl">Robot</span><span class="val" id="hudBot">Runner</span></div>
-  <div class="stat"><span class="lbl">Bolts</span><span class="val bolts" id="hudBolts">0 / 0</span></div>
+  <div class="stat"><span class="lbl">Energy</span><span class="val bolts" id="hudBolts"><i class="ebar" aria-hidden="true"><b id="hudEbar"></b></i><span id="hudEnergy">0 / 0</span></span></div>
   <div class="stat"><span class="lbl">Time</span><span class="val" id="hudTime">0.00</span></div>
   <div class="stat" id="hudArmorBox" hidden><span class="lbl">Armor</span><span class="val armor" id="hudArmor">1</span></div>
   <div class="spacer"></div>
@@ -1473,6 +1481,7 @@ function restartLevel() {
   state.endless = state.mode !== "title" && state.levelIdx >= STORY_LEN;
   levelDef = state.endless ? endlessLevel(state.levelIdx) : DANCE_LEVELS[state.mode === "title" ? 0 : state.levelIdx];
   loadLevel(levelDef);
+  levelEnergyStart();
   respawnAt = { x: spawn.c * T + T / 2, y: spawn.r * T };
   state.runTime = 0; state.timing = false; state.collected = 0; particles.length = 0; pops.length = 0; debris.length = 0; pl.shattered = false;
   battle = null; banner = null; state.finished = false; document.body.classList.remove("battling");
@@ -1501,7 +1510,7 @@ function readSave() {
 function writeSave(levelIdx) {
   try {
     localStorage.setItem(saveKey(), JSON.stringify({ levelIdx, robot: sel, runSeed: state.runSeed, cleared: levelIdx,
-      totalTime: state.totalTime, totalBolts: state.totalBolts, totalAcc: state.totalAcc, at: Date.now() }));
+      totalTime: state.totalTime, totalBolts: state.totalBolts, totalAcc: state.totalAcc, energy: state.carry ?? ENERGY.start, at: Date.now() }));
   } catch (e) {}
 }
 function clearSave() { try { localStorage.removeItem(saveKey()); } catch (e) {} }
@@ -1510,7 +1519,7 @@ function continueGame() {
   audio.unlock();
   if (v.robot !== sel) pick(v.robot);
   Object.assign(state, { levelIdx: v.levelIdx, runSeed: v.runSeed | 0, cleared: v.cleared || 0, totalTime: v.totalTime || 0, totalBolts: v.totalBolts || 0,
-    totalAcc: Array.isArray(v.totalAcc) ? v.totalAcc : [], endCache: null });
+    totalAcc: Array.isArray(v.totalAcc) ? v.totalAcc : [], endCache: null, carry: typeof v.energy === "number" ? v.energy : ENERGY.start });
   startLevel();
 }
 function refreshContinue() {
@@ -1545,7 +1554,7 @@ document.getElementById("backBtn").addEventListener("click", () => setStep(Math.
 try { stepMQ.addEventListener("change", () => setStep(titleStep)); } catch (e) {}
 function startGame() {
   audio.unlock();
-  state.levelIdx = 0; state.totalTime = 0; state.totalBolts = 0; state.totalAcc = []; state.cleared = 0;
+  state.levelIdx = 0; state.totalTime = 0; state.totalBolts = 0; state.totalAcc = []; state.cleared = 0; state.carry = ENERGY.start;
   state.runSeed = (Math.random() * 2147483647) | 0; state.endCache = null;
   startLevel();
 }
@@ -1624,7 +1633,8 @@ function refreshMenu() {
   const best = getBest();
   document.getElementById("modeText").textContent =
     "Eleven story levels to electro beats. A rival guards each dock: it dances a routine, then you copy it on the beat to get past. " +
-    "Beat the four robots, six hybrid bosses and your own dark clone, then keep going: endless levels with new bosses that grow every five levels." +
+    "Beat the four robots, six hybrid bosses and your own dark clone, then keep going: endless levels with new bosses that grow every five levels. " +
+    "Bolts are your energy: grab them all for max energy. A fall costs 3, a lost dance-off costs 5, and running out is game over." +
     (best > STORY_LEN ? ` Your best: level ${best}.` : "");
   document.getElementById("titleEyebrow").textContent = "Dance battles · 11 story levels, then endless";
   document.getElementById("titleEyebrow").classList.add("neon");
@@ -1688,10 +1698,41 @@ function overlapsTiles(x, y, w, h, fn) {
   for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) fn(tileAt(c, r), c, r);
 }
 
+// ---------- energy: your bolts ----------
+// Each level's energy bar holds as many bolts as the level has; collect them all for MAX ENERGY.
+// You start a level with what you finished the last one with (at least ENERGY.minStart).
+// Falling or spikes cost ENERGY.fall, losing a dance-off costs ENERGY.battle; lost bolts go back
+// to their spots in the level. Reaching 0 is game over.
+const ENERGY = { start: 5, minStart: 3, fall: 3, battle: 5 };
+function levelEnergyStart() {
+  const cap = bolts.length;
+  state.energy = Math.max(Math.min(ENERGY.minStart, cap), Math.min(cap, state.carry ?? ENERGY.start));
+  state.boltLog = []; state.maxShown = state.energy >= cap;
+}
+function gainBolt(b) {
+  state.boltLog.push(b);
+  if (state.energy < bolts.length) state.energy++;
+  if (state.energy >= bolts.length && !state.maxShown) {
+    state.maxShown = true;
+    pop(pl.x + ch.W / 2, pl.y - 40, "MAX ENERGY", "#ffe08a", 26);
+    audio.blip(660, 1320, 0.12, "square", 0.05); setTimeout(() => audio.blip(990, 1980, 0.18, "square", 0.05), 110);
+  }
+}
+// returns true when this leaves you out of energy
+function loseEnergy(n, x, y) {
+  const before = state.energy;
+  state.energy = Math.max(0, state.energy - n);
+  // the lost bolts drop back to where they were picked up
+  for (let k = 0; k < before - state.energy && state.boltLog.length; k++) { const b = state.boltLog.pop(); b.got = false; burst(b.x, b.y, 8, "#f2c46a", 120, 20); }
+  if (state.energy < bolts.length) state.maxShown = false;
+  pop(x, y - 30, `-${n} ENERGY`, "#ff5e6c", 22);
+  return state.energy <= 0;
+}
 function die() {
   if (pl.dead) return;
   pl.dead = 0.6; audio.blip(320, 60, 0.35, "sawtooth", 0.07);
   burst(pl.x + ch.W / 2, pl.y + ch.H / 2, 24, "#f2a23a", 260);
+  pl.outOfEnergy = loseEnergy(ENERGY.fall, Math.max(camX + 80, Math.min(camX + viewW - 80, pl.x + ch.W / 2)), Math.min(pl.y, ROWS * T - 120));
 }
 function spikeHit() {
   if (pl.hurtT > 0 || pl.dead) return;
@@ -1919,8 +1960,9 @@ function updateBattle(dt) {
       document.body.classList.remove("battling");
     } else {
       const acc = Math.round(B.acc * 100);
+      if (loseEnergy(ENERGY.battle, pl.x + ch.W / 2, pl.y)) { gameOver(); return; }
       showCard(`<span class="eyebrow neon">Level ${state.levelIdx + 1} · ${levelDef.name}</span><h1>Out-danced</h1>
-        <p>${rival.ch.name} kept the dock and shook you to pieces. You hit ${acc}% of the moves; you need ${Math.round(PASS * 100)}% to win. Watch the routine, then copy each move on its beat.</p>
+        <p>${rival.ch.name} kept the dock and shook you to pieces: <b>-${ENERGY.battle} energy</b> (${state.energy} left, and the bolts went back into the level). You hit ${acc}% of the moves; you need ${Math.round(PASS * 100)}% to win.</p>
         <div class="actions"><button class="btn" data-act="primary" type="button">Battle again</button>${state.endless ? `<button class="btn ghost" data-act="end" type="button">End run</button>` : ""}<button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
         () => { play(); battle = null; rival.dance = null; for (let i = debris.length - 1; i >= 0; i--) if (debris[i].owner === "player") debris.splice(i, 1); pl.shattered = false; pl.flash = 0.6; startBattle(); });
     }
@@ -1941,7 +1983,7 @@ function update(dt) {
 
   if (pl.dead) {
     pl.dead -= dt;
-    if (pl.dead <= 0) { resetPlayer(respawnAt); pl.flash = 0.8; }
+    if (pl.dead <= 0) { if (pl.outOfEnergy) { pl.outOfEnergy = false; gameOver(); return; } resetPlayer(respawnAt); pl.flash = 0.8; }
     return;
   }
   pl.hurtT = Math.max(0, pl.hurtT - dt);
@@ -1983,7 +2025,7 @@ function update(dt) {
 
   const cx = pl.x + W / 2, cy = pl.y + H / 2;
   for (const b of bolts) if (!b.got && Math.abs(b.x - cx) < W / 2 + 14 && Math.abs(b.y - cy) < H / 2 + 14) {
-    b.got = true; state.collected++; burst(b.x, b.y, 12, "#f2c46a", 180, 40);
+    b.got = true; state.collected++; gainBolt(b); burst(b.x, b.y, 12, "#f2c46a", 180, 40);
     audio.blip(880, 1320, 0.09, "square", 0.04);
   }
   for (const k of checkpoints) if (!k.on && Math.abs(k.x - cx) < 40 && pl.y + H > k.y - 140) {
@@ -2089,13 +2131,23 @@ function animate(dt, frozen) {
 function newEndlessRun() {
   state.levelIdx = STORY_LEN; state.runSeed = (Math.random() * 2147483647) | 0; state.endCache = null;
 }
-function endRun() {
+// Out of energy. Story: retry this level with fresh energy. Endless: the run is over.
+function gameOver() {
+  music.stop(); battle = null; document.body.classList.remove("battling"); state.finished = true;
+  if (state.endless) { endRun(true); return; }
+  state.carry = ENERGY.start; writeSave(state.levelIdx);
+  showCard(`<span class="eyebrow neon">Out of energy · level ${state.levelIdx + 1} · ${levelDef.name}</span><h1>Game over</h1>
+    <p>You ran out of bolts. Try level ${state.levelIdx + 1} again from the start with ${ENERGY.start} energy. Collect bolts to fill the bar; falls cost ${ENERGY.fall} and a lost dance-off costs ${ENERGY.battle}.</p>
+    <div class="actions"><button class="btn" data-act="primary" type="button">Try again</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
+    () => { state.finished = false; state.carry = ENERGY.start; startLevel(); });
+}
+function endRun(outOfEnergy = false) {
   const n = state.cleared || 0;
   saveBest(n); music.stop(); battle = null; document.body.classList.remove("battling");
-  const reached = n;
-  newEndlessRun(); writeSave(STORY_LEN);
-  showCard(`<span class="eyebrow neon">Endless run over · ${ch.name}</span><h1>Reached level ${reached}</h1>
-    <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.totalBolts}</dd><dt>Best</dt><dd>level ${getBest()}</dd></dl>
+  const reached = state.levelIdx + 1;
+  newEndlessRun(); state.carry = ENERGY.start; writeSave(STORY_LEN);
+  showCard(`<span class="eyebrow neon">${outOfEnergy ? "Out of energy · " : ""}Endless run over · ${ch.name}</span><h1>${outOfEnergy ? "Game over" : "Run ended"} at level ${reached}</h1>
+    <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts collected</dt><dd>${state.totalBolts}</dd><dt>Best</dt><dd>level ${getBest()}</dd></dl>
     <p>The story stays cleared. Your next run starts again at level ${STORY_LEN + 1} with new levels and bosses.</p>
     <div class="actions"><button class="btn" data-act="primary" type="button">New endless run</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
     () => { state.finished = false; newEndlessRun(); startLevel(); });
@@ -2109,6 +2161,7 @@ function finishLevel() {
   setTimeout(() => {
     state.finished = true;
     state.totalTime += state.runTime; state.totalBolts += state.collected;
+    state.carry = state.energy;   // energy carries into the next level
     writeSave(state.levelIdx + 1);   // the game always continues: story, then endless
     if (state.endless) {
       const i = state.levelIdx, dance = true;
@@ -2122,7 +2175,7 @@ function finishLevel() {
           `<p>Next boss: ${nx.name} · ${nx.blurb}.</p>`;
       }
       showCard(`<span class="eyebrow ${dance ? "neon" : ""}">Endless · level ${i + 1} cleared</span><h1>Docked</h1>
-        <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.collected} of ${bolts.length}</dd>${extra}<dt>Best</dt><dd>level ${getBest()}</dd></dl>${note || ""}
+        <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Energy</dt><dd>${state.energy} / ${bolts.length}${state.energy >= bolts.length ? " · max" : ""}</dd>${extra}<dt>Best</dt><dd>level ${getBest()}</dd></dl>${note || ""}
         <div class="actions"><button class="btn" data-act="primary" type="button">Next level</button><button class="btn ghost" data-act="end" type="button">End run</button></div>`,
         () => { state.finished = false; state.levelIdx++; startLevel(); });
       return;
@@ -2132,7 +2185,7 @@ function finishLevel() {
     if (!last) {
       const nxt = DANCE_LEVELS[state.levelIdx + 1];
       showCard(`<span class="eyebrow neon">Level ${state.levelIdx + 1} cleared · ${levelDef.name}</span><h1>Docked</h1>
-        <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.collected} of ${bolts.length}</dd><dt>Dance</dt><dd>${Math.round(acc * 100)}% against ${rival ? rival.ch.name : "the rival"}</dd></dl>
+        <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Energy</dt><dd>${state.energy} / ${bolts.length}${state.energy >= bolts.length ? " · max" : ""}</dd><dt>Dance</dt><dd>${Math.round(acc * 100)}% against ${rival ? rival.ch.name : "the rival"}</dd></dl>
         <p>Next: ${nxt.name}, ${nxt.bpm} BPM. ${nxt.clone ? "The final rival is waiting: your own dark clone." : nxt.boss ? "A hybrid boss guards the next dock." : "The routines get longer and faster."}</p>
         <div class="actions"><button class="btn" data-act="primary" type="button">Next level</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
         () => { state.finished = false; state.levelIdx++; startLevel(); });
@@ -2140,7 +2193,7 @@ function finishLevel() {
       const avg = state.totalAcc.reduce((a, b) => a + b, 0) / Math.max(1, state.totalAcc.length);
       music.intensity = 2;
       showCard(`<span class="eyebrow neon">Story cleared · ${ch.name}</span><h1>Dance floor champion</h1>
-        <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.totalBolts}</dd><dt>Dance</dt><dd>${Math.round(avg * 100)}% average accuracy</dd></dl>
+        <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts collected</dt><dd>${state.totalBolts}</dd><dt>Dance</dt><dd>${Math.round(avg * 100)}% average accuracy</dd></dl>
         <p>Every rival out-danced, even your own dark clone. The story is done, but the dance floor isn't: endless levels with new bosses start at level ${STORY_LEN + 1}, and the bosses grow every five levels.</p>
         <div class="actions"><button class="btn" data-act="primary" type="button">Keep going</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
         () => { state.finished = false; state.levelIdx = STORY_LEN; state.runSeed = state.runSeed || (Math.random() * 2147483647) | 0; state.endCache = null; startLevel(); });
@@ -2543,7 +2596,12 @@ function render(dt) {
 
 const hudBolts = document.getElementById("hudBolts"), hudTime = document.getElementById("hudTime"), hudArmor = document.getElementById("hudArmor"), hudLvl = document.getElementById("hudLvl");
 function updateHud() {
-  hudBolts.textContent = `${state.collected} / ${bolts.length}`; hudTime.textContent = state.runTime.toFixed(2); hudArmor.textContent = pl.armor ?? 0;
+  const cap = Math.max(1, bolts.length), e = state.energy ?? 0;
+  document.getElementById("hudEnergy").textContent = `${e} / ${bolts.length}`;
+  document.getElementById("hudEbar").style.width = `${Math.min(100, (e / cap) * 100)}%`;
+  hudBolts.classList.toggle("max", e >= bolts.length && bolts.length > 0);
+  hudBolts.classList.toggle("low", e > 0 && e <= ENERGY.fall);
+  hudTime.textContent = state.runTime.toFixed(2); hudArmor.textContent = pl.armor ?? 0;
   hudLvl.textContent = state.endless ? String(state.levelIdx + 1) : `${state.levelIdx + 1} / ${STORY_LEN}`;
 }
 </script>
@@ -2578,7 +2636,7 @@ Promise.all([hatReady, ...ORDER.map(k => loadChar(CHARS[k]))]).then(() => {
   requestAnimationFrame(t => { last = t; frame(t); });
 });
 window.__game = { dbg: { bipedBreak, spiderBreak, drawChar, bipedRun, bipedIdle, spiderGait, spiderAir, B_RISE, B_FALL, B_DANCE, dancePose, spiderDance }, state, pl, input, music,
-  get battle() { return battle; }, get rival() { return rival; }, get pose() { return pose; }, hintsCount: () => hints.length, rivalOff: () => { rival = null; battle = null; }, update, pressJump, startLevelForTest: () => startLevel(), startGame, continueGame, readSave, pick, refreshMenu, showTitle, STORY_LEN, battleInput, CHARS, HYBRIDS, makeHybrid, genLevel, solveLevel, loadLevel, endlessLevel, endlessBossSpec, buildEndlessBoss, rng32, hashSeed, get levelDef() { return levelDef; }, DANCE_LEVELS, startLevel, get grid() { return grid; },
+  get battle() { return battle; }, get rival() { return rival; }, get pose() { return pose; }, hintsCount: () => hints.length, rivalOff: () => { rival = null; battle = null; }, boltsList: () => bolts, gameOver, ENERGY, update, pressJump, startLevelForTest: () => startLevel(), startGame, continueGame, readSave, pick, refreshMenu, showTitle, STORY_LEN, battleInput, CHARS, HYBRIDS, makeHybrid, genLevel, solveLevel, loadLevel, endlessLevel, endlessBossSpec, buildEndlessBoss, rng32, hashSeed, get levelDef() { return levelDef; }, DANCE_LEVELS, startLevel, get grid() { return grid; },
   get ch() { return ch; }, get cam() { return [camX, camY, zoom]; } };
 </script>
 </body>

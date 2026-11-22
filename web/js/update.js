@@ -11,7 +11,7 @@ function update(dt) {
 
   if (pl.dead) {
     pl.dead -= dt;
-    if (pl.dead <= 0) { resetPlayer(respawnAt); pl.flash = 0.8; }
+    if (pl.dead <= 0) { if (pl.outOfEnergy) { pl.outOfEnergy = false; gameOver(); return; } resetPlayer(respawnAt); pl.flash = 0.8; }
     return;
   }
   pl.hurtT = Math.max(0, pl.hurtT - dt);
@@ -53,7 +53,7 @@ function update(dt) {
 
   const cx = pl.x + W / 2, cy = pl.y + H / 2;
   for (const b of bolts) if (!b.got && Math.abs(b.x - cx) < W / 2 + 14 && Math.abs(b.y - cy) < H / 2 + 14) {
-    b.got = true; state.collected++; burst(b.x, b.y, 12, "#f2c46a", 180, 40);
+    b.got = true; state.collected++; gainBolt(b); burst(b.x, b.y, 12, "#f2c46a", 180, 40);
     audio.blip(880, 1320, 0.09, "square", 0.04);
   }
   for (const k of checkpoints) if (!k.on && Math.abs(k.x - cx) < 40 && pl.y + H > k.y - 140) {
@@ -159,13 +159,23 @@ function animate(dt, frozen) {
 function newEndlessRun() {
   state.levelIdx = STORY_LEN; state.runSeed = (Math.random() * 2147483647) | 0; state.endCache = null;
 }
-function endRun() {
+// Out of energy. Story: retry this level with fresh energy. Endless: the run is over.
+function gameOver() {
+  music.stop(); battle = null; document.body.classList.remove("battling"); state.finished = true;
+  if (state.endless) { endRun(true); return; }
+  state.carry = ENERGY.start; writeSave(state.levelIdx);
+  showCard(`<span class="eyebrow neon">Out of energy · level ${state.levelIdx + 1} · ${levelDef.name}</span><h1>Game over</h1>
+    <p>You ran out of bolts. Try level ${state.levelIdx + 1} again from the start with ${ENERGY.start} energy. Collect bolts to fill the bar; falls cost ${ENERGY.fall} and a lost dance-off costs ${ENERGY.battle}.</p>
+    <div class="actions"><button class="btn" data-act="primary" type="button">Try again</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
+    () => { state.finished = false; state.carry = ENERGY.start; startLevel(); });
+}
+function endRun(outOfEnergy = false) {
   const n = state.cleared || 0;
   saveBest(n); music.stop(); battle = null; document.body.classList.remove("battling");
-  const reached = n;
-  newEndlessRun(); writeSave(STORY_LEN);
-  showCard(`<span class="eyebrow neon">Endless run over · ${ch.name}</span><h1>Reached level ${reached}</h1>
-    <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.totalBolts}</dd><dt>Best</dt><dd>level ${getBest()}</dd></dl>
+  const reached = state.levelIdx + 1;
+  newEndlessRun(); state.carry = ENERGY.start; writeSave(STORY_LEN);
+  showCard(`<span class="eyebrow neon">${outOfEnergy ? "Out of energy · " : ""}Endless run over · ${ch.name}</span><h1>${outOfEnergy ? "Game over" : "Run ended"} at level ${reached}</h1>
+    <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts collected</dt><dd>${state.totalBolts}</dd><dt>Best</dt><dd>level ${getBest()}</dd></dl>
     <p>The story stays cleared. Your next run starts again at level ${STORY_LEN + 1} with new levels and bosses.</p>
     <div class="actions"><button class="btn" data-act="primary" type="button">New endless run</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
     () => { state.finished = false; newEndlessRun(); startLevel(); });
@@ -179,6 +189,7 @@ function finishLevel() {
   setTimeout(() => {
     state.finished = true;
     state.totalTime += state.runTime; state.totalBolts += state.collected;
+    state.carry = state.energy;   // energy carries into the next level
     writeSave(state.levelIdx + 1);   // the game always continues: story, then endless
     if (state.endless) {
       const i = state.levelIdx, dance = true;
@@ -192,7 +203,7 @@ function finishLevel() {
           `<p>Next boss: ${nx.name} · ${nx.blurb}.</p>`;
       }
       showCard(`<span class="eyebrow ${dance ? "neon" : ""}">Endless · level ${i + 1} cleared</span><h1>Docked</h1>
-        <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.collected} of ${bolts.length}</dd>${extra}<dt>Best</dt><dd>level ${getBest()}</dd></dl>${note || ""}
+        <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Energy</dt><dd>${state.energy} / ${bolts.length}${state.energy >= bolts.length ? " · max" : ""}</dd>${extra}<dt>Best</dt><dd>level ${getBest()}</dd></dl>${note || ""}
         <div class="actions"><button class="btn" data-act="primary" type="button">Next level</button><button class="btn ghost" data-act="end" type="button">End run</button></div>`,
         () => { state.finished = false; state.levelIdx++; startLevel(); });
       return;
@@ -202,7 +213,7 @@ function finishLevel() {
     if (!last) {
       const nxt = DANCE_LEVELS[state.levelIdx + 1];
       showCard(`<span class="eyebrow neon">Level ${state.levelIdx + 1} cleared · ${levelDef.name}</span><h1>Docked</h1>
-        <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.collected} of ${bolts.length}</dd><dt>Dance</dt><dd>${Math.round(acc * 100)}% against ${rival ? rival.ch.name : "the rival"}</dd></dl>
+        <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Energy</dt><dd>${state.energy} / ${bolts.length}${state.energy >= bolts.length ? " · max" : ""}</dd><dt>Dance</dt><dd>${Math.round(acc * 100)}% against ${rival ? rival.ch.name : "the rival"}</dd></dl>
         <p>Next: ${nxt.name}, ${nxt.bpm} BPM. ${nxt.clone ? "The final rival is waiting: your own dark clone." : nxt.boss ? "A hybrid boss guards the next dock." : "The routines get longer and faster."}</p>
         <div class="actions"><button class="btn" data-act="primary" type="button">Next level</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
         () => { state.finished = false; state.levelIdx++; startLevel(); });
@@ -210,7 +221,7 @@ function finishLevel() {
       const avg = state.totalAcc.reduce((a, b) => a + b, 0) / Math.max(1, state.totalAcc.length);
       music.intensity = 2;
       showCard(`<span class="eyebrow neon">Story cleared · ${ch.name}</span><h1>Dance floor champion</h1>
-        <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts</dt><dd>${state.totalBolts}</dd><dt>Dance</dt><dd>${Math.round(avg * 100)}% average accuracy</dd></dl>
+        <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts collected</dt><dd>${state.totalBolts}</dd><dt>Dance</dt><dd>${Math.round(avg * 100)}% average accuracy</dd></dl>
         <p>Every rival out-danced, even your own dark clone. The story is done, but the dance floor isn't: endless levels with new bosses start at level ${STORY_LEN + 1}, and the bosses grow every five levels.</p>
         <div class="actions"><button class="btn" data-act="primary" type="button">Keep going</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
         () => { state.finished = false; state.levelIdx = STORY_LEN; state.runSeed = state.runSeed || (Math.random() * 2147483647) | 0; state.endCache = null; startLevel(); });
