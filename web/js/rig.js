@@ -103,9 +103,41 @@ function calibrate(ch) {
 }
 
 // Draws a character with its lowest foot on footY. Returns the solve plus world-space hand points.
+// ---------- spins that read as solid ----------
+// Only side-view art exists, so a spin is faked by turning the body around a vertical axis.
+// Rounded parts (arms, legs, fists) keep their full width and just swing around the body.
+// Flat parts (head, torso, pelvis, feet, spider body, accessories) narrow to at most 75% and
+// fade into a solid shaded silhouette of themselves as they pass edge-on. The silhouette is made
+// from the part's own pixels, so bosses get it in their paint colour and the dark clone in black.
+const ROUND_PARTS = new Set(["thigh", "shin", "upper_arm", "forearm", "fist", "upper_leg", "lower_leg"]);
+const SLAB_MIN = 0.75;
+const silhouettes = new WeakMap();
+function silhouetteOf(src) {
+  let c = silhouettes.get(src);
+  if (c) return c;
+  const w = src.width, h = src.height;
+  c = document.createElement("canvas"); c.width = w; c.height = h;
+  const g = c.getContext("2d");
+  g.drawImage(src, 0, 0);
+  // average colour of the visible pixels: the part's plastic colour (tinted for bosses)
+  const d = g.getImageData(0, 0, w, h).data; let r = 0, gg = 0, b = 0, n = 0;
+  for (let i = 0; i < d.length; i += 16) if (d[i + 3] > 128) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; n++; }
+  const avg = n ? `rgb(${r / n | 0},${gg / n | 0},${b / n | 0})` : "#cfd6dc";
+  g.globalCompositeOperation = "source-atop";
+  g.globalAlpha = 0.82; g.fillStyle = avg; g.fillRect(0, 0, w, h);   // flatten the detail into one colour
+  g.globalAlpha = 1;
+  const sh = g.createLinearGradient(0, 0, w, 0);                       // light edge, body, then a dark rim for thickness
+  sh.addColorStop(0, "rgba(255,255,255,0.38)"); sh.addColorStop(0.3, "rgba(255,255,255,0.08)");
+  sh.addColorStop(0.72, "rgba(0,0,0,0.12)"); sh.addColorStop(0.86, "rgba(0,0,0,0.42)"); sh.addColorStop(1, "rgba(0,0,0,0.6)");
+  g.fillStyle = sh; g.fillRect(0, 0, w, h);
+  silhouettes.set(src, c);
+  return c;
+}
+
 function drawChar(g, ch, P, x, footY, face, scale = ch.scale, alpha = 1) {
   const s = solve(ch, P);
-  const rotA = P.rot || 0, sxv = P.sx ?? 1, spin = (sxv < 0 ? -1 : 1) * Math.max(0.45, Math.abs(sxv));
+  const rotA = P.rot || 0, sxv = P.sx ?? 1, sgn = sxv < 0 ? -1 : 1;
+  const spin = sgn * Math.max(0.3, Math.abs(sxv));           // how far the body has turned: positions squeeze with this (never fully flat)
   let low = s.low;
   if (Math.abs(rotA) > 0.001) {
     // lowest point of the rotated body, from slightly inset corners of every part
@@ -121,15 +153,37 @@ function drawChar(g, ch, P, x, footY, face, scale = ch.scale, alpha = 1) {
     low = s.low * (1 - wgt) + lc * wgt;
   }
   const oy = footY - low * scale;
+  const turned = Math.abs(spin) < 0.999;
+  const silA = Math.max(0, Math.min(1, (0.72 - Math.abs(spin)) / 0.42));   // silhouette strength: 0 when facing, 1 edge-on
+  const sx0 = face * scale * spin, cR = Math.cos(rotA), sR = Math.sin(rotA);
   g.save();
-  if (alpha < 1) g.globalAlpha = alpha;
   if (ch.aura) { g.shadowColor = ch.aura; g.shadowBlur = 14; }
-  g.translate(x, oy); g.scale(face * scale * spin, scale); if (rotA) g.rotate(rotA);
   for (const p of s.parts) {
     const im = (p.far ? ch.dark : ch.img)[p.name];
     if (!im) continue;
-    g.save(); g.translate(p.x, p.y); g.rotate(p.ang); if (p.k) g.scale(p.k, p.k); if (p.sx !== 1) g.scale(p.sx, 1);
-    g.drawImage(im.im, -p.px * im.w, -p.py * im.h, im.w, im.h);
+    const k = p.k || 1;
+    // pivot on screen: body transform = translate(x, oy) . scale(face*scale*spin, scale) . rotate(rotA)
+    const ex = x + sx0 * (p.x * cR - p.y * sR), ey = oy + scale * (p.x * sR + p.y * cR);
+    // the part's long (image-down) axis, squeezed with the body turn: this foreshortens limbs correctly
+    const th = rotA + p.ang, vyx = sx0 * (-Math.sin(th)) * k, vyy = scale * Math.cos(th) * k;
+    const vl = Math.hypot(vyx, vyy) || 1e-6;
+    // its width axis: perpendicular, at full width for round parts, at least SLAB_MIN for flat ones
+    const round = ROUND_PARTS.has(p.name);
+    const wx = !turned ? 1 : round ? 1 : Math.max(Math.abs(spin), SLAB_MIN);
+    const mirror = Math.sign(face * sgn * p.sx) || 1;
+    const wlen = scale * k * Math.abs(p.sx) * wx * mirror;
+    const vxx = wlen * (vyy / vl), vxy = wlen * (-vyx / vl);
+    g.save();
+    g.transform(vxx, vxy, vyx, vyy, ex, ey);
+    const ax = -p.px * im.w, ay = -p.py * im.h;
+    const a0 = alpha;
+    if (!round && turned && silA > 0) {
+      g.globalAlpha = a0 * (1 - silA); if (silA < 1) g.drawImage(im.im, ax, ay, im.w, im.h);
+      g.globalAlpha = a0 * silA; g.drawImage(silhouetteOf(im.im), ax, ay, im.w, im.h);
+    } else {
+      if (a0 < 1) g.globalAlpha = a0;
+      g.drawImage(im.im, ax, ay, im.w, im.h);
+    }
     g.restore();
   }
   g.restore();
