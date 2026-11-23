@@ -2807,10 +2807,22 @@ function drawBattleUI() {
     g.fillText(txt, cxs, top + laneH * 0.5 + laneH * 0.28 * (0.82 - 0.2 * k) / 0.82);
     g.shadowBlur = 0; g.globalAlpha = 1;
   };
+  // the player's count-in sits in a badge under the track, so the moves to copy (and the playhead) stay in view
+  const badge = (txt, col, k) => {
+    const h = 44, y = top + laneH + 18, fs = Math.round(30 - 6 * k);
+    g.font = `700 ${fs}px 'Chakra Petch', sans-serif`;
+    const w = Math.max(h * 1.6, g.measureText(txt).width + 36), bx = laneX + laneW - w / 2; // right end: clear of the robots and the pads
+    g.globalAlpha = 1 - k * 0.35;
+    g.fillStyle = "rgba(8,12,20,0.88)"; g.fillRect(bx - w / 2, y, w, h);
+    g.strokeStyle = col; g.lineWidth = 2; g.strokeRect(bx - w / 2 + 1, y + 1, w - 2, h - 2);
+    g.textAlign = "center"; g.shadowColor = col; g.shadowBlur = 12; g.fillStyle = col;
+    g.fillText(txt, bx, y + h / 2 + fs * 0.36);
+    g.shadowBlur = 0; g.globalAlpha = 1;
+  };
   if (b >= 0 && b < 4) { const n = Math.floor(b); big(["GET READY", "3", "2", "1"][n], "#ff5ec8", b - n); }
   for (const rr of B.rounds) {
-    if (b >= rr.count && b < rr.resp) { const n = Math.floor(b - rr.count); big(["YOUR TURN", "3", "2", "1"][n], "#5ee7ff", b - rr.count - n); }
-    else if (b >= rr.resp && b < rr.resp + 1) big("GO!", "#6fe0a0", b - rr.resp);
+    if (b >= rr.count && b < rr.resp) { const n = Math.floor(b - rr.count); badge(["YOUR TURN", "3", "2", "1"][n], "#5ee7ff", b - rr.count - n); }
+    else if (b >= rr.resp && b < rr.resp + 1) badge("GO!", "#6fe0a0", b - rr.resp);
   }
 }
 </script>
