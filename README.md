@@ -10,7 +10,9 @@ A browser platformer starring robots built from rig parts: eleven story levels o
 - Jump: Space, W or ↑ (hold for higher)
 - Drop through orange girders: ↓ or S
 - Dance battles: ← ↑ ↓ → and Space
-- On phones, on-screen buttons appear during play.
+- Pause: Esc or P (R restarts, M mutes). Menus: arrows/Enter, Esc goes back.
+- Controller (Xbox, PlayStation, Switch Pro…): D-pad or stick to run, A to jump, down drops, Start pauses. In dance-offs the D-pad does the moves and A is Flare. In menus the D-pad moves, A chooses, B goes back.
+- On phones, large on-screen buttons appear during play (they hide while a controller is in use).
 
 Progress is saved in the browser (localStorage).
 

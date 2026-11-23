@@ -92,3 +92,89 @@ document.querySelectorAll("#touchDance button").forEach(btn => btn.addEventListe
 addEventListener("mouseup", () => { if (touchHeld.size) releaseTouch(); });
 // no pinch or double-tap zoom anywhere in the game
 for (const ev of ["gesturestart", "gesturechange", "gestureend", "dblclick"]) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+
+// ---------- gamepad (standard mapping: Xbox, PlayStation, Switch Pro and most others) ----------
+// Platforming: D-pad or left stick runs (down drops through girders), A jumps, Start pauses.
+// Dance-offs: D-pad or stick are the four moves, A (or X/Y) is Flare.
+// Menus: D-pad moves between buttons, A chooses, B goes back, Start pauses and resumes.
+const padPrev = {};
+let padActive = false;
+function padState() {
+  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+  const st = { up: false, down: false, left: false, right: false, a: false, b: false, x: false, start: false, back: false };
+  for (const gp of pads) {
+    const btn = i => !!(gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > 0.5));
+    const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
+    st.left = st.left || btn(14) || ax < -0.5; st.right = st.right || btn(15) || ax > 0.5;
+    st.up = st.up || btn(12) || ay < -0.5; st.down = st.down || btn(13) || ay > 0.5;
+    st.a = st.a || btn(0); st.b = st.b || btn(1); st.x = st.x || btn(2) || btn(3);
+    st.start = st.start || btn(9); st.back = st.back || btn(8);
+  }
+  return { st, any: pads.length > 0 };
+}
+function pollGamepad() {
+  const { st, any } = padState();
+  if (!any) return;
+  const pressed = k => st[k] && !padPrev[k], released = k => !st[k] && padPrev[k];
+  if (Object.keys(st).some(pressed)) { padActive = true; document.body.classList.add("using-pad"); audio.unlock(); }
+  if (state.mode === "play" && !state.paused) {
+    if (pressed("start")) pauseGame();
+    else if (battle && battle.started) {
+      for (const [k, mv] of [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"], ["a", "act"], ["x", "act"]]) if (pressed(k)) battleInput(mv);
+    } else {
+      for (const k of ["left", "right", "down"]) { if (pressed(k)) input[k] = true; else if (released(k)) input[k] = false; }
+      if (pressed("a")) { if (!input.jump) pressJump(); input.jump = true; } else if (released("a")) input.jump = false;
+    }
+  } else menuNav(pressed);
+  Object.assign(padPrev, st);
+}
+// menu navigation by controller
+function menuRoot() {
+  if (state.paused) return pauseCard;
+  if (state.mode === "home") return homeEl;
+  if (state.mode === "title") return titleCard;
+  if (state.mode === "card") return winCard;
+  return null;
+}
+function menuButtons() {
+  const root = menuRoot();
+  return root ? [...root.querySelectorAll("button")].filter(b => b.offsetParent !== null && !b.classList.contains("pick")) : [];
+}
+function defaultButton(list) {
+  const pick = id => { const el = document.getElementById(id); return el && list.includes(el) ? el : null; };
+  if (state.paused) return pick("resumeBtn");
+  if (state.mode === "home") return pick("homeStart");
+  if (state.mode === "card") return winCard.querySelector("[data-act=primary]");
+  return pick("continueBtn") || pick("nextBtn") || pick("startBtn") || list[0];
+}
+function setPadFocus(el) {
+  document.querySelectorAll(".pad-focus").forEach(e => e.classList.remove("pad-focus"));
+  if (el) { el.classList.add("pad-focus"); el.focus({ preventScroll: false }); }
+}
+function menuNav(pressed) {
+  const list = menuButtons();
+  if (!list.length) return;
+  const cur = list.includes(document.activeElement) ? document.activeElement : null;
+  if (pressed("up") || pressed("down") || (state.mode !== "title" && (pressed("left") || pressed("right")))) {
+    const dir = pressed("up") || pressed("left") ? -1 : 1;
+    const i = cur ? list.indexOf(cur) : list.indexOf(defaultButton(list));
+    setPadFocus(list[((i < 0 ? 0 : i + dir) + list.length) % list.length]);
+  }
+  if (state.mode === "title" && (pressed("left") || pressed("right"))) pick(ORDER[(ORDER.indexOf(sel) + (pressed("left") ? ORDER.length - 1 : 1)) % ORDER.length]);
+  if (pressed("a")) { const el = cur || defaultButton(list); if (el) el.click(); }
+  if (pressed("start")) { if (state.paused) resumeGame(); else if (state.mode === "home") leaveHome(); else { const el = defaultButton(list); if (el) el.click(); } }
+  if (pressed("b")) { if (state.paused) resumeGame(); else if (state.mode === "title" || state.mode === "card") showHome(); }
+}
+addEventListener("pointerdown", () => { document.querySelectorAll(".pad-focus").forEach(e => e.classList.remove("pad-focus")); });
+addEventListener("touchstart", () => document.body.classList.remove("using-pad"), { passive: true });
+addEventListener("gamepadconnected", e => {
+  padActive = true;
+  banner = { text: "Controller connected", sub: "D-pad / stick to move · A to jump · Start to pause", until: state.time + 2.5 };
+});
+function padRumble(ms, strength) {
+  if (!padActive || !navigator.getGamepads) return;
+  for (const gp of navigator.getGamepads()) {
+    const v = gp && gp.vibrationActuator;
+    if (v && v.playEffect) v.playEffect("dual-rumble", { duration: ms, strongMagnitude: strength, weakMagnitude: strength * 0.6 }).catch(() => {});
+  }
+}

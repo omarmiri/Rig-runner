@@ -10,7 +10,7 @@ function resize() {
   dpr = Math.min(2, window.devicePixelRatio || 1);
   canvas.width = Math.round(innerWidth * dpr); canvas.height = Math.round(innerHeight * dpr);
   // on touch screens, keep a band at the bottom for the pads so they sit over solid ground, not the action
-  padBand = coarse ? 44 : 0;
+  padBand = coarse ? Math.round(Math.min(78, Math.max(48, innerHeight * 0.13))) : 0;
   zoom = Math.min((innerHeight - padBand) / (ROWS * T), innerWidth / 540);
   viewW = innerWidth / zoom; viewH = innerHeight / zoom;
 }

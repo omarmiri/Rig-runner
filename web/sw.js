@@ -1,6 +1,6 @@
 // Rig Runner service worker: makes the game work offline and installable as a Home Screen app.
 // Bump VERSION whenever you publish changes so players' phones pick up the new files.
-const VERSION = "rig-runner-2026-11-23a";
+const VERSION = "rig-runner-2026-11-23b";
 const SHELL = [
   "./",
   "index.html",

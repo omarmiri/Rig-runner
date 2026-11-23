@@ -24,7 +24,8 @@ function refreshMenu() {
   document.getElementById("titleEyebrow").textContent = "Dance battles · 11 story levels, then endless";
   document.getElementById("titleEyebrow").classList.add("neon");
   document.getElementById("controls").innerHTML = `<dt>Run</dt><dd>← → or A D</dd><dt>Jump</dt><dd>Space, W or ↑. Hold for a higher jump</dd><dt>Drop</dt><dd>↓ or S through orange girders</dd>` +
-    `<dt>Dance</dt><dd class="moves"><span><kbd>↑</kbd>Head spin</span><span><kbd>←</kbd>Windmill</span><span><kbd>↓</kbd>Backspin</span><span><kbd>→</kbd>Air freeze</span><span><kbd>Space</kbd>Flare</span></dd>`;
+    `<dt>Dance</dt><dd class="moves"><span><kbd>↑</kbd>Head spin</span><span><kbd>←</kbd>Windmill</span><span><kbd>↓</kbd>Backspin</span><span><kbd>→</kbd>Air freeze</span><span><kbd>Space</kbd>Flare</span></dd>` +
+    `<dt>Pause</dt><dd>Esc or P</dd><dt>Controller</dt><dd>D-pad or stick to run, A to jump, Start to pause. In dance-offs the D-pad does the moves and A is Flare.</dd>`;
   refreshContinue();
   document.getElementById("hudLvlBox").hidden = false;
   if (state.mode === "title") restartLevel();

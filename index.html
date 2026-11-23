@@ -75,7 +75,7 @@ body.menu .hud { visibility: hidden; }
 .hud .val.armor { color: var(--go); }
 .hud .val.lvl { color: var(--neon); }
 .hud .spacer { flex: 1; }
-#pauseBtn { pointer-events: auto; align-self: flex-start; width: 46px; height: 46px; margin-left: 4px; border: 1px solid var(--line); background: rgba(10, 14, 19, 0.74); color: var(--dim); cursor: pointer; display: grid; place-items: center; padding: 0;
+#pauseBtn { pointer-events: auto; align-self: flex-start; width: 46px; height: 46px; position: relative; margin-left: 4px; border: 1px solid var(--line); background: rgba(10, 14, 19, 0.74); color: var(--dim); cursor: pointer; display: grid; place-items: center; padding: 0;
   clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
 #pauseBtn svg { width: 20px; height: 20px; fill: currentColor; }
 #pauseBtn:hover, #pauseBtn:focus-visible { color: var(--ink); border-color: var(--hazard); outline: none; }
@@ -116,6 +116,9 @@ body.battling .hud .keys { visibility: hidden; }
 .card.stepped .summary { display: block; font-weight: 700; color: var(--ink); }
 .card.stepped .mode { padding: 12px 14px; }
 .card.stepped .stepnav { position: sticky; bottom: -16px; margin: 0 -18px -16px; padding: 10px 18px 16px; background: #0c151e; border-top: 1px solid var(--line); }
+@media (pointer: coarse) { #pauseBtn { width: 54px; height: 54px; } #pauseBtn::before { content: ""; position: absolute; inset: -8px; } }
+/* gamepad focus: a clear ring on whichever menu button the controller is on */
+.pad-focus { outline: 3px solid var(--neon) !important; outline-offset: 3px; }
 @media (pointer: coarse) { .keyhint, #controls { display: none !important; } }
 /* sideways phones: keep each step to one screen */
 @media (max-height: 540px) {
@@ -158,13 +161,18 @@ body.battling .hud .keys { visibility: hidden; }
 }
 .touch { position: fixed; left: 0; right: 0; bottom: 0; padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 8px) max(16px, env(safe-area-inset-left, 0px)); display: none; justify-content: space-between; align-items: flex-end; pointer-events: none; }
 .touch .grp { display: flex; gap: 12px; }
-.touch button { touch-action: none; -webkit-user-select: none; user-select: none; pointer-events: auto; width: 56px; height: 56px; border-radius: 50%; border: 2px solid rgba(233, 238, 242, 0.3); background: rgba(15, 26, 36, 0.28); color: var(--ink); font: inherit; font-size: 19px; font-weight: 700; touch-action: none; }
-.touch button.jump { width: 68px; height: 68px; font-size: 13px; letter-spacing: 0.08em; border-color: var(--hazard); color: var(--hazard); }
-.touch button.act { width: 68px; height: 68px; font-size: 13px; letter-spacing: 0.08em; border-color: var(--pink); color: var(--pink); }
+/* touch pads sized from the screen: as big as fits below the robots (the playfield is lifted to make room) */
+.touch { --pad: clamp(60px, min(21vh, 17vw), 92px); --dpad: clamp(54px, min(17vh, 15vw), 76px); }
+.touch button { position: relative; touch-action: none; -webkit-user-select: none; user-select: none; pointer-events: auto; width: var(--pad); height: var(--pad); border-radius: 50%; border: 2px solid rgba(233, 238, 242, 0.32); background: rgba(15, 26, 36, 0.26); color: var(--ink); font: inherit; font-size: calc(var(--pad) * 0.32); font-weight: 700; }
+/* a little invisible margin around every button so near-misses still count */
+.touch button::before { content: ""; position: absolute; inset: -10px; border-radius: inherit; }
+.touch button.jump { width: calc(var(--pad) * 1.18); height: calc(var(--pad) * 1.18); font-size: calc(var(--pad) * 0.2); letter-spacing: 0.08em; border-color: var(--hazard); color: var(--hazard); }
+.touch button.act { width: calc(var(--pad) * 1.18); height: calc(var(--pad) * 1.18); font-size: calc(var(--pad) * 0.2); letter-spacing: 0.08em; border-color: var(--pink); color: var(--pink); }
+.touch .grp { gap: calc(var(--pad) * 0.22); align-items: flex-end; }
 .touch button.on { background: rgba(242, 162, 58, 0.3); }
 /* dance pad: a classic plus-shaped D-pad */
-.touch .dpad { display: grid; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 52px); gap: 4px; }
-.touch .dpad button { width: 52px; height: 52px; border-radius: 10px; border-color: var(--neon); color: var(--neon); }
+.touch .dpad { display: grid; grid-template-columns: repeat(3, var(--dpad)); grid-template-rows: repeat(3, var(--dpad)); gap: 4px; }
+.touch .dpad button { width: var(--dpad); height: var(--dpad); border-radius: 12px; border-color: var(--neon); color: var(--neon); font-size: calc(var(--dpad) * 0.36); }
 .touch .dpad [data-m="up"] { grid-column: 2; grid-row: 1; }
 .touch .dpad [data-m="left"] { grid-column: 1; grid-row: 2; }
 .touch .dpad [data-m="right"] { grid-column: 3; grid-row: 2; }
@@ -175,8 +183,11 @@ body.battling .hud .keys { visibility: hidden; }
   body.battling #touchRun { display: none; } body.battling #touchDance { display: flex; }
 }
 /* touch pads only while playing: never on the menu or the cards between levels */
-body.menu .touch { display: none !important; }
+body.menu .touch, body.using-pad .touch { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .card { backdrop-filter: none; } }
+#pauseBtn { flex-shrink: 0; }
+.hud .val { white-space: nowrap; }
+@media (max-width: 480px) { .hud { gap: 12px; } .hud .val { font-size: 18px; } .hud .ebar { width: 48px; } }
 </style>
 </head>
 <body>
@@ -1594,6 +1605,92 @@ document.querySelectorAll("#touchDance button").forEach(btn => btn.addEventListe
 addEventListener("mouseup", () => { if (touchHeld.size) releaseTouch(); });
 // no pinch or double-tap zoom anywhere in the game
 for (const ev of ["gesturestart", "gesturechange", "gestureend", "dblclick"]) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+
+// ---------- gamepad (standard mapping: Xbox, PlayStation, Switch Pro and most others) ----------
+// Platforming: D-pad or left stick runs (down drops through girders), A jumps, Start pauses.
+// Dance-offs: D-pad or stick are the four moves, A (or X/Y) is Flare.
+// Menus: D-pad moves between buttons, A chooses, B goes back, Start pauses and resumes.
+const padPrev = {};
+let padActive = false;
+function padState() {
+  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+  const st = { up: false, down: false, left: false, right: false, a: false, b: false, x: false, start: false, back: false };
+  for (const gp of pads) {
+    const btn = i => !!(gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > 0.5));
+    const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
+    st.left = st.left || btn(14) || ax < -0.5; st.right = st.right || btn(15) || ax > 0.5;
+    st.up = st.up || btn(12) || ay < -0.5; st.down = st.down || btn(13) || ay > 0.5;
+    st.a = st.a || btn(0); st.b = st.b || btn(1); st.x = st.x || btn(2) || btn(3);
+    st.start = st.start || btn(9); st.back = st.back || btn(8);
+  }
+  return { st, any: pads.length > 0 };
+}
+function pollGamepad() {
+  const { st, any } = padState();
+  if (!any) return;
+  const pressed = k => st[k] && !padPrev[k], released = k => !st[k] && padPrev[k];
+  if (Object.keys(st).some(pressed)) { padActive = true; document.body.classList.add("using-pad"); audio.unlock(); }
+  if (state.mode === "play" && !state.paused) {
+    if (pressed("start")) pauseGame();
+    else if (battle && battle.started) {
+      for (const [k, mv] of [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"], ["a", "act"], ["x", "act"]]) if (pressed(k)) battleInput(mv);
+    } else {
+      for (const k of ["left", "right", "down"]) { if (pressed(k)) input[k] = true; else if (released(k)) input[k] = false; }
+      if (pressed("a")) { if (!input.jump) pressJump(); input.jump = true; } else if (released("a")) input.jump = false;
+    }
+  } else menuNav(pressed);
+  Object.assign(padPrev, st);
+}
+// menu navigation by controller
+function menuRoot() {
+  if (state.paused) return pauseCard;
+  if (state.mode === "home") return homeEl;
+  if (state.mode === "title") return titleCard;
+  if (state.mode === "card") return winCard;
+  return null;
+}
+function menuButtons() {
+  const root = menuRoot();
+  return root ? [...root.querySelectorAll("button")].filter(b => b.offsetParent !== null && !b.classList.contains("pick")) : [];
+}
+function defaultButton(list) {
+  const pick = id => { const el = document.getElementById(id); return el && list.includes(el) ? el : null; };
+  if (state.paused) return pick("resumeBtn");
+  if (state.mode === "home") return pick("homeStart");
+  if (state.mode === "card") return winCard.querySelector("[data-act=primary]");
+  return pick("continueBtn") || pick("nextBtn") || pick("startBtn") || list[0];
+}
+function setPadFocus(el) {
+  document.querySelectorAll(".pad-focus").forEach(e => e.classList.remove("pad-focus"));
+  if (el) { el.classList.add("pad-focus"); el.focus({ preventScroll: false }); }
+}
+function menuNav(pressed) {
+  const list = menuButtons();
+  if (!list.length) return;
+  const cur = list.includes(document.activeElement) ? document.activeElement : null;
+  if (pressed("up") || pressed("down") || (state.mode !== "title" && (pressed("left") || pressed("right")))) {
+    const dir = pressed("up") || pressed("left") ? -1 : 1;
+    const i = cur ? list.indexOf(cur) : list.indexOf(defaultButton(list));
+    setPadFocus(list[((i < 0 ? 0 : i + dir) + list.length) % list.length]);
+  }
+  if (state.mode === "title" && (pressed("left") || pressed("right"))) pick(ORDER[(ORDER.indexOf(sel) + (pressed("left") ? ORDER.length - 1 : 1)) % ORDER.length]);
+  if (pressed("a")) { const el = cur || defaultButton(list); if (el) el.click(); }
+  if (pressed("start")) { if (state.paused) resumeGame(); else if (state.mode === "home") leaveHome(); else { const el = defaultButton(list); if (el) el.click(); } }
+  if (pressed("b")) { if (state.paused) resumeGame(); else if (state.mode === "title" || state.mode === "card") showHome(); }
+}
+addEventListener("pointerdown", () => { document.querySelectorAll(".pad-focus").forEach(e => e.classList.remove("pad-focus")); });
+addEventListener("touchstart", () => document.body.classList.remove("using-pad"), { passive: true });
+addEventListener("gamepadconnected", e => {
+  padActive = true;
+  banner = { text: "Controller connected", sub: "D-pad / stick to move · A to jump · Start to pause", until: state.time + 2.5 };
+});
+function padRumble(ms, strength) {
+  if (!padActive || !navigator.getGamepads) return;
+  for (const gp of navigator.getGamepads()) {
+    const v = gp && gp.vibrationActuator;
+    if (v && v.playEffect) v.playEffect("dual-rumble", { duration: ms, strongMagnitude: strength, weakMagnitude: strength * 0.6 }).catch(() => {});
+  }
+}
 </script>
 <script>
 // Rig Runner · Game state, level flow and saved progress.
@@ -1780,7 +1877,8 @@ function refreshMenu() {
   document.getElementById("titleEyebrow").textContent = "Dance battles · 11 story levels, then endless";
   document.getElementById("titleEyebrow").classList.add("neon");
   document.getElementById("controls").innerHTML = `<dt>Run</dt><dd>← → or A D</dd><dt>Jump</dt><dd>Space, W or ↑. Hold for a higher jump</dd><dt>Drop</dt><dd>↓ or S through orange girders</dd>` +
-    `<dt>Dance</dt><dd class="moves"><span><kbd>↑</kbd>Head spin</span><span><kbd>←</kbd>Windmill</span><span><kbd>↓</kbd>Backspin</span><span><kbd>→</kbd>Air freeze</span><span><kbd>Space</kbd>Flare</span></dd>`;
+    `<dt>Dance</dt><dd class="moves"><span><kbd>↑</kbd>Head spin</span><span><kbd>←</kbd>Windmill</span><span><kbd>↓</kbd>Backspin</span><span><kbd>→</kbd>Air freeze</span><span><kbd>Space</kbd>Flare</span></dd>` +
+    `<dt>Pause</dt><dd>Esc or P</dd><dt>Controller</dt><dd>D-pad or stick to run, A to jump, Start to pause. In dance-offs the D-pad does the moves and A is Flare.</dd>`;
   refreshContinue();
   document.getElementById("hudLvlBox").hidden = false;
   if (state.mode === "title") restartLevel();
@@ -1873,12 +1971,13 @@ function die() {
   if (pl.dead) return;
   pl.dead = 0.6; audio.blip(320, 60, 0.35, "sawtooth", 0.07);
   burst(pl.x + ch.W / 2, pl.y + ch.H / 2, 24, "#f2a23a", 260);
+  padRumble(260, 0.8);
   pl.outOfEnergy = loseEnergy(ENERGY.fall, Math.max(camX + 80, Math.min(camX + viewW - 80, pl.x + ch.W / 2)), Math.min(pl.y, ROWS * T - 120));
 }
 function spikeHit() {
   if (pl.hurtT > 0 || pl.dead) return;
   if (pl.armor > 0) {
-    pl.armor--; pl.hurtT = 1.0; pl.flash = 1.0; pl.vy = -720; pl.ground = false;
+    pl.armor--; pl.hurtT = 1.0; pl.flash = 1.0; pl.vy = -720; pl.ground = false; padRumble(140, 0.5);
     burst(pl.x + ch.W / 2, pl.y + ch.H, 18, "#c9d3db", 240, 60);
     audio.blip(200, 90, 0.2, "square", 0.07);
   } else die();
@@ -2356,7 +2455,7 @@ function resize() {
   dpr = Math.min(2, window.devicePixelRatio || 1);
   canvas.width = Math.round(innerWidth * dpr); canvas.height = Math.round(innerHeight * dpr);
   // on touch screens, keep a band at the bottom for the pads so they sit over solid ground, not the action
-  padBand = coarse ? 44 : 0;
+  padBand = coarse ? Math.round(Math.min(78, Math.max(48, innerHeight * 0.13))) : 0;
   zoom = Math.min((innerHeight - padBand) / (ROWS * T), innerWidth / 540);
   viewW = innerWidth / zoom; viewH = innerHeight / zoom;
 }
@@ -2852,6 +2951,7 @@ let last = 0, stepAcc = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000 || 0); last = now;
   if (sizeChanged()) resize();
+  pollGamepad();
   // pads hidden (menu, card, battle start) while a finger was on one: let go of everything
   if (touchHeld.size && (document.body.classList.contains("menu") || document.body.classList.contains("battling"))) releaseTouch();
   stepAcc += dt; let n = 0;
@@ -2877,7 +2977,7 @@ Promise.all([hatReady, ...ORDER.map(k => loadChar(CHARS[k]))]).then(() => {
   requestAnimationFrame(t => { last = t; frame(t); });
 });
 window.__game = { dbg: { bipedBreak, spiderBreak, drawChar, bipedRun, bipedIdle, spiderGait, spiderAir, B_RISE, B_FALL, B_DANCE, dancePose, spiderDance }, state, pl, input, music,
-  get battle() { return battle; }, get rival() { return rival; }, get pose() { return pose; }, hintsCount: () => hints.length, rivalOff: () => { rival = null; battle = null; }, boltsList: () => bolts, gameOver, ENERGY, update, pressJump, startLevelForTest: () => startLevel(), startGame, continueGame, readSave, pick, refreshMenu, showTitle, showHome, leaveHome, STORY_LEN, battleInput, CHARS, HYBRIDS, makeHybrid, genLevel, solveLevel, loadLevel, endlessLevel, endlessBossSpec, buildEndlessBoss, rng32, hashSeed, get levelDef() { return levelDef; }, DANCE_LEVELS, startLevel, get grid() { return grid; },
+  get battle() { return battle; }, get rival() { return rival; }, get pose() { return pose; }, hintsCount: () => hints.length, rivalOff: () => { rival = null; battle = null; }, boltsList: () => bolts, pollGamepad, gameOver, ENERGY, update, pressJump, startLevelForTest: () => startLevel(), startGame, continueGame, readSave, pick, refreshMenu, showTitle, showHome, leaveHome, STORY_LEN, battleInput, CHARS, HYBRIDS, makeHybrid, genLevel, solveLevel, loadLevel, endlessLevel, endlessBossSpec, buildEndlessBoss, rng32, hashSeed, get levelDef() { return levelDef; }, DANCE_LEVELS, startLevel, get grid() { return grid; },
   get ch() { return ch; }, get cam() { return [camX, camY, zoom]; } };
 </script>
 </body>

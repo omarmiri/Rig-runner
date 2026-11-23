@@ -55,12 +55,13 @@ function die() {
   if (pl.dead) return;
   pl.dead = 0.6; audio.blip(320, 60, 0.35, "sawtooth", 0.07);
   burst(pl.x + ch.W / 2, pl.y + ch.H / 2, 24, "#f2a23a", 260);
+  padRumble(260, 0.8);
   pl.outOfEnergy = loseEnergy(ENERGY.fall, Math.max(camX + 80, Math.min(camX + viewW - 80, pl.x + ch.W / 2)), Math.min(pl.y, ROWS * T - 120));
 }
 function spikeHit() {
   if (pl.hurtT > 0 || pl.dead) return;
   if (pl.armor > 0) {
-    pl.armor--; pl.hurtT = 1.0; pl.flash = 1.0; pl.vy = -720; pl.ground = false;
+    pl.armor--; pl.hurtT = 1.0; pl.flash = 1.0; pl.vy = -720; pl.ground = false; padRumble(140, 0.5);
     burst(pl.x + ch.W / 2, pl.y + ch.H, 18, "#c9d3db", 240, 60);
     audio.blip(200, 90, 0.2, "square", 0.07);
   } else die();
