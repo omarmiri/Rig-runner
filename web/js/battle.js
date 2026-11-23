@@ -55,7 +55,8 @@ function makeRound(spec, opts = {}) {
   const grid = [];
   for (let b = 0; b < spec.beats; b += spec.eighths ? 0.5 : 1) grid.push(b);
   // +1: an empty lead-in beat, so the first move lands one beat after GO! instead of on it
-  const moves = hook(spec).map(x => ({ off: x.off + 1, move: x.move, shown: false, sched: false, res: null }));
+  const notes = opts.fixed ? opts.fixed.map(([off, move]) => ({ off, move })) : hook(spec);
+  const moves = notes.map(x => ({ off: x.off + 1, move: x.move, shown: false, sched: false, res: null }));
   const r = { beats: spec.beats + 1, moves };
   if (opts.fake) {
     // a decoy in a free slot: the boss dances it in red, and copying it costs you
@@ -80,7 +81,7 @@ function startBattle() {
   B.skills = skills;
   for (const [ri, spec] of specs.entries()) {
     const sig = levelDef.signature && levelDef.signature.rounds[ri];
-    const r = sig ? makeFixedRound(sig, spec.beats) : makeRound(spec, { fake: skills.includes("fake") && ri > 0, blackout: skills.includes("blackout") });
+    const r = makeRound(spec, { fake: skills.includes("fake") && ri > 0, blackout: skills.includes("blackout"), fixed: sig || null });
     r.call = cur; r.count = cur + r.beats; r.resp = r.count + 4; cur = r.resp + r.beats + 4;
     B.max += r.moves.length * 2;
     B.rounds.push(r);

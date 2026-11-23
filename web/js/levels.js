@@ -150,7 +150,44 @@ const DANCE_LEVELS = [
       [[0, "down"], [1, "right"], [2, "up"], [3, "right"], [4, "down"], [6, "act"]],
     ],
   };
+  // Levels 3-11: each a different genre trick. A hook is a 4-beat motif; rounds 2 and 3 repeat it and
+  // add an answer phrase in the second bar. Counts match each level's difficulty plan above.
+  const sig = (name, motif, answer2, answer3) => ({
+    name, motif, rounds: [motif, [...motif, ...answer2.map(([b, m]) => [b + 4, m])], [...motif, ...answer3.map(([b, m]) => [b + 4, m])]],
+  });
+  const sigs = [
+    // 3 · disco: the octave bounce, low-high-low-high
+    sig("Octave bounce", [[0, "down"], [1, "up"], [2, "down"], [3, "up"]],
+      [[0, "right"], [2, "act"]], [[0, "right"], [0.5, "right"], [2, "act"]]),
+    // 4 · electro: a zig-zag between left and right that pops up at the end
+    sig("Zig-zag", [[0, "left"], [1, "right"], [2, "left"], [3, "up"]],
+      [[0, "left"], [2, "down"]], [[0, "left"], [1, "right"], [1.5, "act"]]),
+    // 5 · funk (Bruiser): punch, hey, punch, hey
+    sig("Punch, hey", [[0, "down"], [1, "act"], [2, "down"], [3, "act"]],
+      [[0, "down"], [2, "up"]], [[0, "down"], [0.5, "down"], [2, "act"]]),
+    // 6 · trance (Rocket Brute): a rising ladder, then a double-time lift-off
+    sig("Lift-off ladder", [[0, "down"], [1, "left"], [2, "right"], [3, "up"]],
+      [[0, "up"], [0.5, "up"]], [[0, "up"], [0.5, "up"], [1, "act"]]),
+    // 7 · disco (Stilts): octave bounce with a long-legged skip
+    sig("Long legs", [[0, "down"], [1, "up"], [1.5, "up"], [2, "down"], [3, "up"]],
+      [[2, "act"]], [[0, "down"], [2, "act"]]),
+    // 8 · electro (Gold Runner): a stutter that strikes gold
+    sig("Gold rush", [[0, "right"], [0.5, "right"], [1, "up"], [2, "right"], [3, "down"]],
+      [[0, "right"], [2, "act"]], [[0, "right"], [0.5, "right"], [2, "up"]]),
+    // 9 · funk (Bughead): a buzzing triple, then a sting
+    sig("Bug buzz", [[0, "left"], [0.5, "left"], [1, "left"], [2, "right"], [3, "act"]],
+      [[0, "left"], [2, "down"]], [[0, "left"], [0.5, "left"], [2, "up"]]),
+    // 10 · trance (Spider Tank): a six-legged gallop
+    sig("Scuttle", [[0, "down"], [0.5, "right"], [1, "down"], [1.5, "right"], [3, "up"]],
+      [[0, "down"], [2, "act"]], [[0, "down"], [0.5, "right"], [2, "act"]]),
+    // 11 · disco (dark clone): level 1's stomp, mirrored upside down
+    sig("Mirror stomp", [[0, "up"], [1, "up"], [2, "up"], [3, "down"], [3.5, "act"]],
+      [[0, "up"], [1, "up"], [2, "act"]], [[0, "up"], [1, "up"], [2, "down"], [2.5, "act"]]),
+  ];
+  sigs.forEach((s, k) => { DANCE_LEVELS[k + 2].signature = s; });
 })();
+// every hook, for endless levels to draw from
+const RIFF_LIBRARY = DANCE_LEVELS.filter(d => d.signature).map(d => ({ name: d.signature.name, motif: d.signature.motif }));
 // The story is the 11 hand-made levels; after them the game continues with generated endless levels.
 const STORY_LEN = DANCE_LEVELS.length;
 const levelList = () => DANCE_LEVELS;

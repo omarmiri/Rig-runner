@@ -110,9 +110,24 @@ function endlessLevel(i) {
   }
   if (!def) def = makeLevel({ name: `Sector ${endlessOf(i) + 1}`, theme: i % THEMES.length }, ["rest", "rest", "rest"], dance);
   def.tries = tries; def.genMs = performance.now() - t0;
-  if (dance) { const spec = endlessBossSpec(i); def.bossSpec = spec; def.rivalChar = buildEndlessBoss(spec); def.bpm = Math.min(118, Math.round(88 + 1.5 * i)); def.rounds = endlessRounds(i); }
+  if (dance) { const spec = endlessBossSpec(i); def.bossSpec = spec; def.rivalChar = buildEndlessBoss(spec); def.bpm = Math.min(118, Math.round(88 + 1.5 * i)); def.rounds = endlessRounds(i); def.signature = endlessSignature(i, def.rounds); }
   state.endCache = { i, def };
   return def;
+}
+// An endless level's hook: one of the story motifs that fits round 1, repeated in every round,
+// with a new answer phrase after it in rounds 2 and up.
+function endlessSignature(i, rounds) {
+  const R = rng32(hashSeed(state.runSeed, i, 11)), r1 = rounds[0];
+  const pool = RIFF_LIBRARY.filter(r => r.motif.length === r1.n && (r1.eighths || r.motif.every(([b]) => b % 1 === 0)));
+  if (!pool.length) return null;
+  const riff = pool[Math.floor(R() * pool.length)];
+  const out = [riff.motif];
+  for (let k = 1; k < rounds.length; k++) {
+    const need = Math.max(0, rounds[k].n - riff.motif.length);
+    const ans = need >= 2 ? phrase(need, rounds[k].eighths) : need === 1 ? [{ off: 2, move: "act" }] : [];
+    out.push([...riff.motif, ...ans.map(x => [x.off + 4, x.move])]);
+  }
+  return { name: riff.name, motif: riff.motif, rounds: out };
 }
 function bestKey() { return "rigrunner.best.story"; }
 function getBest() { try { return +localStorage.getItem(bestKey()) || 0; } catch (e) { return 0; } }
