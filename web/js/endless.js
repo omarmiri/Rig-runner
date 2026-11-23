@@ -1,4 +1,4 @@
-// Rig Runner · Endless mode: accessories, generated bosses, level pipeline, best score.
+// Bolt Beat · Endless mode: accessories, generated bosses, level pipeline, best score.
 "use strict";
 // ---------- accessories, drawn in code and worn on the head ----------
 const ACC = {

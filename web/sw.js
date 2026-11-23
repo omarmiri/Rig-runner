@@ -1,6 +1,6 @@
-// Rig Runner service worker: makes the game work offline and installable as a Home Screen app.
+// Bolt Beat service worker: makes the game work offline and installable as a Home Screen app.
 // Bump VERSION whenever you publish changes so players' phones pick up the new files.
-const VERSION = "rig-runner-2026-11-23d";
+const VERSION = "bolt-beat-2026-11-23e";
 const SHELL = [
   "./",
   "index.html",

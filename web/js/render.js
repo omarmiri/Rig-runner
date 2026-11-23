@@ -1,4 +1,4 @@
-// Rig Runner · Drawing the world: camera, background, tiles, props, characters.
+// Bolt Beat · Drawing the world: camera, background, tiles, props, characters.
 "use strict";
 // ================= Rendering =================
 const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");

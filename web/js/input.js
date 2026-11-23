@@ -1,4 +1,4 @@
-// Rig Runner · Keyboard and touch input.
+// Bolt Beat · Keyboard and touch input.
 "use strict";
 // ================= Input =================
 const input = { left: false, right: false, jump: false, down: false };

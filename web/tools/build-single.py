@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pack the web/ folder into one self-contained HTML file (CSS, scripts and images inlined).
 
-Usage:  python3 tools/build-single.py [output.html] [--fragment]     (default: dist/rig-runner.html)
+Usage:  python3 tools/build-single.py [output.html] [--fragment]     (default: dist/bolt-beat.html)
         --fragment  leave out the <html>/<head>/<body> wrapper, for hosts that add their own
 Useful for hosts that only take a single file, or for sharing the game as one download.
 """
@@ -10,7 +10,7 @@ import base64, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 args = [a for a in sys.argv[1:] if not a.startswith("--")]
 fragment = "--fragment" in sys.argv
-out = args[0] if args else os.path.join(ROOT, "dist", "rig-runner.html")
+out = args[0] if args else os.path.join(ROOT, "dist", "bolt-beat.html")
 
 def read(rel):
     with open(os.path.join(ROOT, rel), encoding="utf-8") as f:

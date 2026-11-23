@@ -1,4 +1,4 @@
-// Rig Runner · Sound: synth blips and the electro beat sequencer.
+// Bolt Beat · Sound: synth blips and the electro beat sequencer.
 "use strict";
 // ================= Audio: synth + electro sequencer =================
 const audio = {

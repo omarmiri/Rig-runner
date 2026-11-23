@@ -1,4 +1,4 @@
-// Rig Runner · Endless mode: proves a generated level can be finished, using the game's own physics.
+// Bolt Beat · Endless mode: proves a generated level can be finished, using the game's own physics.
 "use strict";
 // ---------- solver: proves the loaded level can be finished by robot c ----------
 // It runs the game's own movement code (moveBody, same fixed step) for jumps and walk-offs from every

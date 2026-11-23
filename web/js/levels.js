@@ -1,4 +1,4 @@
-// Rig Runner · Tile helpers, themes, campaign levels and the reusable course sections.
+// Bolt Beat · Tile helpers, themes, campaign levels and the reusable course sections.
 "use strict";
 // ================= Levels =================
 const T = 48, ROWS = 12;

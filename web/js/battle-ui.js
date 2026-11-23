@@ -1,4 +1,4 @@
-// Rig Runner · Drawing the dance battle track, countdown and legend.
+// Bolt Beat · Drawing the dance battle track, countdown and legend.
 "use strict";
 // ---------- screen-space battle UI ----------
 function moveIcon(g, mv, x, y, s, alpha = 1, ring = null) {

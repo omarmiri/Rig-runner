@@ -1,4 +1,4 @@
-// Rig Runner · Title menu: modes, robot picker, phone steps.
+// Bolt Beat · Title menu: modes, robot picker, phone steps.
 "use strict";
 // ---------- menu: mode + robot picker ----------
 const picker = document.getElementById("picker"), barsEl = document.getElementById("bars"), abilityEl = document.getElementById("ability");

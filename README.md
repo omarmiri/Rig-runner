@@ -1,4 +1,4 @@
-# Rig Runner
+# Bolt Beat
 
 A browser platformer starring robots built from rig parts: eleven story levels of platforming and dance battles (rival robots, hybrid bosses, a dark-clone finale), then endless generated levels and bosses that are proven beatable before you play them.
 

@@ -1,4 +1,4 @@
-// Rig Runner · Kinematics: turns a pose into placed part images, and draws a character.
+// Bolt Beat · Kinematics: turns a pose into placed part images, and draws a character.
 "use strict";
 // ================= Kinematics =================
 const rot = (x, y, a) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];

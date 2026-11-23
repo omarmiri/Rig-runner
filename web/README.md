@@ -1,4 +1,4 @@
-# Rig Runner (website version)
+# Bolt Beat (website version)
 
 A browser platformer starring robots built from rig parts: five playable robots and one continuous game. Eleven story levels end in dance battles against rival robots, hybrid bosses and your own dark clone; after the story the game keeps going with endless levels and bosses that are generated on the fly, proven beatable before you play them, and grow every five levels.
 
@@ -56,7 +56,7 @@ python3 -m http.server 8000      # then open http://localhost:8000
 
 ## Put it on miriogames.com
 
-Upload `index.html`, `manifest.webmanifest`, `sw.js`, `css/`, `js/`, `assets/` and `icons/` together, keeping the folder structure. All paths are relative, so it works at the site root or in a subfolder such as `miriogames.com/rig-runner/`. `tests/`, `tools/` and `package.json` are for development and don't need to be uploaded.
+Upload `index.html`, `manifest.webmanifest`, `sw.js`, `css/`, `js/`, `assets/` and `icons/` together, keeping the folder structure. All paths are relative, so it works at the site root or in a subfolder such as `miriogames.com/bolt-beat/`. `tests/`, `tools/` and `package.json` are for development and don't need to be uploaded.
 
 Any static host works (shared hosting, Netlify, Cloudflare Pages, S3). It needs no server code and no special configuration. Saved progress is kept in each player's browser (localStorage) and is separate for each site address.
 
@@ -84,5 +84,5 @@ The suite checks that the page loads cleanly, every story level can be finished 
 ## Single-file version
 
 ```
-python3 tools/build-single.py            # writes dist/rig-runner.html
+python3 tools/build-single.py            # writes dist/bolt-beat.html
 ```

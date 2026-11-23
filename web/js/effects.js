@@ -1,4 +1,4 @@
-// Rig Runner · Particles, popups and robots coming apart.
+// Bolt Beat · Particles, popups and robots coming apart.
 "use strict";
 // ---------- particles + popups ----------
 function burst(x, y, n, color, spd = 160, up = 0) {

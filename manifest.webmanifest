@@ -1,6 +1,6 @@
 {
-  "name": "Rig Runner",
-  "short_name": "Rig Runner",
+  "name": "Bolt Beat",
+  "short_name": "Bolt Beat",
   "description": "A robot platformer with dance battles, hybrid bosses and endless generated levels.",
   "start_url": "./",
   "scope": "./",

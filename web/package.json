@@ -1,8 +1,8 @@
 {
-  "name": "rig-runner",
+  "name": "bolt-beat",
   "version": "1.0.0",
   "private": true,
-  "description": "Rig Runner: a robot platformer with dance battles, hybrid bosses and endless generated levels.",
+  "description": "Bolt Beat: a robot platformer with dance battles, hybrid bosses and endless generated levels.",
   "scripts": {
     "serve": "python3 -m http.server 8000",
     "test": "node tests/run.js",

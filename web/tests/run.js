@@ -1,4 +1,4 @@
-// Rig Runner test suite. Serves the game folder locally and drives it in headless Chromium.
+// Bolt Beat test suite. Serves the game folder locally and drives it in headless Chromium.
 //   npm test              quick run (about a minute)
 //   npm test -- --full    bigger samples plus a real-time dance battle (a few minutes)
 "use strict";

@@ -1,4 +1,4 @@
-// Rig Runner · Poses: idle, run, jump, breakdance and lasso moves, for bipeds and the spider.
+// Bolt Beat · Poses: idle, run, jump, breakdance and lasso moves, for bipeds and the spider.
 "use strict";
 // ================= Poses =================
 const lerpPose = (a, b, t, out = {}) => { for (const k in b) out[k] = (a[k] ?? b[k]) + (b[k] - (a[k] ?? b[k])) * t; return out; };

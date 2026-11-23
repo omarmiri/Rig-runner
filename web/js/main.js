@@ -1,4 +1,4 @@
-// Rig Runner · Main loop and startup.
+// Bolt Beat · Main loop and startup.
 "use strict";
 let last = 0, stepAcc = 0;
 function frame(now) {

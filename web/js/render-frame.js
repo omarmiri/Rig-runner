@@ -1,4 +1,4 @@
-// Rig Runner · Frame render and HUD.
+// Bolt Beat · Frame render and HUD.
 "use strict";
 const dancePadGrid = document.querySelector("#touchDance .dpad");
 function render(dt) {

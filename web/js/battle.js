@@ -1,4 +1,4 @@
-// Rig Runner · Dance battle rules: routines, timing, scoring, boss skills.
+// Bolt Beat · Dance battle rules: routines, timing, scoring, boss skills.
 "use strict";
 // ================= Dance battle =================
 const MOVES = ["up", "down", "left", "right", "act"];

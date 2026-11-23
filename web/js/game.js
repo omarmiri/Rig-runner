@@ -1,4 +1,4 @@
-// Rig Runner · Game state, level flow and saved progress.
+// Bolt Beat · Game state, level flow and saved progress.
 "use strict";
 // ================= Game state =================
 const state = { mode: "title", gameMode: "dance", levelIdx: 0, time: 0, runTime: 0, timing: false, collected: 0, totalTime: 0, totalBolts: 0, totalAcc: [] };

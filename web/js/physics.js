@@ -1,4 +1,4 @@
-// Rig Runner · Level loading and movement physics shared by the player and the solver.
+// Bolt Beat · Level loading and movement physics shared by the player and the solver.
 "use strict";
 function loadLevel(def) {
   COLS = def.cols;

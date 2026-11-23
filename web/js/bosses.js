@@ -1,4 +1,4 @@
-// Rig Runner · Dark clone and the hand-made hybrid bosses.
+// Bolt Beat · Dark clone and the hand-made hybrid bosses.
 "use strict";
 // ---------- dark clone: the player's own rig, blacked out with a red glow ----------
 const clones = {};

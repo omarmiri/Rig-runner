@@ -1,4 +1,4 @@
-// Rig Runner · Endless mode: seeded random helpers and the level generator.
+// Bolt Beat · Endless mode: seeded random helpers and the level generator.
 "use strict";
 // ================= Endless mode =================
 const STEP = 1 / 60;  // fixed physics step, shared by the game and the level solver

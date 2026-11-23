@@ -1,4 +1,4 @@
-// Rig Runner · Home screen: title, menu music, and your robot dancing on a stage.
+// Bolt Beat · Home screen: title, menu music, and your robot dancing on a stage.
 "use strict";
 // The first touch or key anywhere starts the music (browsers only allow sound after one),
 // and "Press here to start" goes on to the robot picker. Menu exits come back here.

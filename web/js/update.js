@@ -1,4 +1,4 @@
-// Rig Runner · Per-step update: player, rival and dance animation, level finish cards.
+// Bolt Beat · Per-step update: player, rival and dance animation, level finish cards.
 "use strict";
 // ================= Update =================
 function update(dt) {
