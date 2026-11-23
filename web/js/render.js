@@ -3,15 +3,16 @@
 // ================= Rendering =================
 const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
 let dpr = 1, zoom = 1, viewW = 0, viewH = 0, camX = 0, camY = 0;
-let padBand = 0;
+let padBand = 0, padBandBase = 0;
 const coarse = (() => { try { return matchMedia("(pointer: coarse)").matches; } catch (e) { return false; } })();
 const reduceMotion = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } })();
 function resize() {
   dpr = Math.min(2, window.devicePixelRatio || 1);
   canvas.width = Math.round(innerWidth * dpr); canvas.height = Math.round(innerHeight * dpr);
   // on touch screens, keep a band at the bottom for the pads so they sit over solid ground, not the action
-  padBand = coarse ? Math.round(Math.min(78, Math.max(48, innerHeight * 0.13))) : 0;
-  zoom = Math.min((innerHeight - padBand) / (ROWS * T), innerWidth / 540);
+  padBandBase = coarse ? Math.round(Math.min(78, Math.max(48, innerHeight * 0.13))) : 0;
+  zoom = Math.min((innerHeight - padBandBase) / (ROWS * T), innerWidth / 540);
+  padBand = Math.max(padBand, padBandBase);
   viewW = innerWidth / zoom; viewH = innerHeight / zoom;
 }
 addEventListener("resize", resize);

@@ -75,7 +75,7 @@ body.menu .hud { visibility: hidden; }
 .hud .val.armor { color: var(--go); }
 .hud .val.lvl { color: var(--neon); }
 .hud .spacer { flex: 1; }
-#pauseBtn { pointer-events: auto; align-self: flex-start; width: 46px; height: 46px; position: relative; margin-left: 4px; border: 1px solid var(--line); background: rgba(10, 14, 19, 0.74); color: var(--dim); cursor: pointer; display: grid; place-items: center; padding: 0;
+#pauseBtn { pointer-events: auto; align-self: flex-start; width: 46px; height: 46px; margin-left: 4px; border: 1px solid var(--line); background: rgba(10, 14, 19, 0.74); color: var(--dim); cursor: pointer; display: grid; place-items: center; padding: 0;
   clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
 #pauseBtn svg { width: 20px; height: 20px; fill: currentColor; }
 #pauseBtn:hover, #pauseBtn:focus-visible { color: var(--ink); border-color: var(--hazard); outline: none; }
@@ -116,7 +116,6 @@ body.battling .hud .keys { visibility: hidden; }
 .card.stepped .summary { display: block; font-weight: 700; color: var(--ink); }
 .card.stepped .mode { padding: 12px 14px; }
 .card.stepped .stepnav { position: sticky; bottom: -16px; margin: 0 -18px -16px; padding: 10px 18px 16px; background: #0c151e; border-top: 1px solid var(--line); }
-@media (pointer: coarse) { #pauseBtn { width: 54px; height: 54px; } #pauseBtn::before { content: ""; position: absolute; inset: -8px; } }
 /* gamepad focus: a clear ring on whichever menu button the controller is on */
 .pad-focus { outline: 3px solid var(--neon) !important; outline-offset: 3px; }
 @media (pointer: coarse) { .keyhint, #controls { display: none !important; } }
@@ -162,7 +161,7 @@ body.battling .hud .keys { visibility: hidden; }
 .touch { position: fixed; left: 0; right: 0; bottom: 0; padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 8px) max(16px, env(safe-area-inset-left, 0px)); display: none; justify-content: space-between; align-items: flex-end; pointer-events: none; }
 .touch .grp { display: flex; gap: 12px; }
 /* touch pads sized from the screen: as big as fits below the robots (the playfield is lifted to make room) */
-.touch { --pad: clamp(60px, min(21vh, 17vw), 92px); --dpad: clamp(54px, min(17vh, 15vw), 76px); }
+.touch { --pad: clamp(60px, min(21vh, 19vw), 92px); --dpad: clamp(54px, min(17vh, 20vw), 84px); }
 .touch button { position: relative; touch-action: none; -webkit-user-select: none; user-select: none; pointer-events: auto; width: var(--pad); height: var(--pad); border-radius: 50%; border: 2px solid rgba(233, 238, 242, 0.32); background: rgba(15, 26, 36, 0.26); color: var(--ink); font: inherit; font-size: calc(var(--pad) * 0.32); font-weight: 700; }
 /* a little invisible margin around every button so near-misses still count */
 .touch button::before { content: ""; position: absolute; inset: -10px; border-radius: inherit; }
@@ -174,6 +173,9 @@ body.battling .hud .keys { visibility: hidden; }
 .touch .dpad { display: grid; grid-template-columns: repeat(3, var(--dpad)); grid-template-rows: repeat(3, var(--dpad)); gap: 4px; }
 .touch .dpad button { width: var(--dpad); height: var(--dpad); border-radius: 12px; border-color: var(--neon); color: var(--neon); font-size: calc(var(--dpad) * 0.36); }
 .touch .dpad [data-m="up"] { grid-column: 2; grid-row: 1; }
+.touch .dpad [data-m="up"] { --mc: #5ee7ff; } .touch .dpad [data-m="down"] { --mc: #ff5ec8; } .touch .dpad [data-m="left"] { --mc: #c6ff5e; } .touch .dpad [data-m="right"] { --mc: #ffb03a; }
+.touch .dpad button { border-color: var(--mc); color: var(--mc); background: color-mix(in srgb, var(--mc) 12%, rgba(10, 14, 24, 0.45)); }
+.touch .dpad button.on { background: color-mix(in srgb, var(--mc) 40%, transparent); }
 .touch .dpad [data-m="left"] { grid-column: 1; grid-row: 2; }
 .touch .dpad [data-m="right"] { grid-column: 3; grid-row: 2; }
 .touch .dpad [data-m="down"] { grid-column: 2; grid-row: 3; }
@@ -185,9 +187,6 @@ body.battling .hud .keys { visibility: hidden; }
 /* touch pads only while playing: never on the menu or the cards between levels */
 body.menu .touch, body.using-pad .touch { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .card { backdrop-filter: none; } }
-#pauseBtn { flex-shrink: 0; }
-.hud .val { white-space: nowrap; }
-@media (max-width: 480px) { .hud { gap: 12px; } .hud .val { font-size: 18px; } .hud .ebar { width: 48px; } }
 </style>
 </head>
 <body>
@@ -2448,15 +2447,16 @@ function finishLevel() {
 // ================= Rendering =================
 const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
 let dpr = 1, zoom = 1, viewW = 0, viewH = 0, camX = 0, camY = 0;
-let padBand = 0;
+let padBand = 0, padBandBase = 0;
 const coarse = (() => { try { return matchMedia("(pointer: coarse)").matches; } catch (e) { return false; } })();
 const reduceMotion = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } })();
 function resize() {
   dpr = Math.min(2, window.devicePixelRatio || 1);
   canvas.width = Math.round(innerWidth * dpr); canvas.height = Math.round(innerHeight * dpr);
   // on touch screens, keep a band at the bottom for the pads so they sit over solid ground, not the action
-  padBand = coarse ? Math.round(Math.min(78, Math.max(48, innerHeight * 0.13))) : 0;
-  zoom = Math.min((innerHeight - padBand) / (ROWS * T), innerWidth / 540);
+  padBandBase = coarse ? Math.round(Math.min(78, Math.max(48, innerHeight * 0.13))) : 0;
+  zoom = Math.min((innerHeight - padBandBase) / (ROWS * T), innerWidth / 540);
+  padBand = Math.max(padBand, padBandBase);
   viewW = innerWidth / zoom; viewH = innerHeight / zoom;
 }
 addEventListener("resize", resize);
@@ -2787,7 +2787,8 @@ function drawBattleUI() {
   g.fillStyle = acc >= PASS ? "#6fe0a0" : "#5ee7ff"; g.fillRect(laneX, my, laneW * Math.min(1, acc), 6);
   g.fillStyle = "#e9eef2"; g.fillRect(laneX + laneW * PASS - 1, my - 3, 2, 12);
   // move legend while waiting
-  if (b < 4 || (!inCall && !inResp && !inCount && !B.outcome)) {
+  // (on touch screens the colour-coded dance pad is the legend, and the drawn one would sit under thumbs or robots)
+  if ((b < 4 || (!inCall && !inResp && !inCount && !B.outcome)) && !coarse) {
     const items = MOVES.map(mv => [iconFor(mv), mv === "act" && B.rival.ch.lasso ? "Lasso twirl" : MOVE_NAME[mv]]);
     const iw = Math.min(118, (laneW) / 5);
     items.forEach(([mv, name], i) => {
@@ -2816,6 +2817,7 @@ function drawBattleUI() {
 <script>
 // Rig Runner · Frame render and HUD.
 "use strict";
+const dancePadGrid = document.querySelector("#touchDance .dpad");
 function render(dt) {
   if (state.mode === "home") { renderHome(dt); return; }
   const bi = beatInfo();
@@ -2824,6 +2826,14 @@ function render(dt) {
   else target = pl.x + ch.W / 2 - viewW * 0.4 + pl.face * 60;
   camX += (target - camX) * (1 - Math.exp(-dt * (battle ? 4 : 6)));
   camX = Math.max(0, Math.min(COLS * T - viewW, camX));
+  // portrait dance-offs: the plus pad is tall, so slide the stage up above it (the screen has room to spare)
+  let wantBand = padBandBase;
+  if (coarse && innerHeight > innerWidth && document.body.classList.contains("battling")) {
+    const r = dancePadGrid.getBoundingClientRect();
+    if (r.height) wantBand = Math.max(wantBand, Math.round(innerHeight - r.top + 12));
+  }
+  padBand += (wantBand - padBand) * (1 - Math.exp(-dt * 6));
+  if (Math.abs(wantBand - padBand) < 0.5) padBand = wantBand;
   camY = ROWS * T - (innerHeight - padBand) / zoom;
   const z = zoom * dpr, cx = Math.round(camX * z) / z;
   let sy = 0;

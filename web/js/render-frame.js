@@ -1,5 +1,6 @@
 // Rig Runner · Frame render and HUD.
 "use strict";
+const dancePadGrid = document.querySelector("#touchDance .dpad");
 function render(dt) {
   if (state.mode === "home") { renderHome(dt); return; }
   const bi = beatInfo();
@@ -8,6 +9,14 @@ function render(dt) {
   else target = pl.x + ch.W / 2 - viewW * 0.4 + pl.face * 60;
   camX += (target - camX) * (1 - Math.exp(-dt * (battle ? 4 : 6)));
   camX = Math.max(0, Math.min(COLS * T - viewW, camX));
+  // portrait dance-offs: the plus pad is tall, so slide the stage up above it (the screen has room to spare)
+  let wantBand = padBandBase;
+  if (coarse && innerHeight > innerWidth && document.body.classList.contains("battling")) {
+    const r = dancePadGrid.getBoundingClientRect();
+    if (r.height) wantBand = Math.max(wantBand, Math.round(innerHeight - r.top + 12));
+  }
+  padBand += (wantBand - padBand) * (1 - Math.exp(-dt * 6));
+  if (Math.abs(wantBand - padBand) < 0.5) padBand = wantBand;
   camY = ROWS * T - (innerHeight - padBand) / zoom;
   const z = zoom * dpr, cx = Math.round(camX * z) / z;
   let sy = 0;

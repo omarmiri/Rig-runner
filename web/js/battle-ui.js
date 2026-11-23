@@ -108,7 +108,8 @@ function drawBattleUI() {
   g.fillStyle = acc >= PASS ? "#6fe0a0" : "#5ee7ff"; g.fillRect(laneX, my, laneW * Math.min(1, acc), 6);
   g.fillStyle = "#e9eef2"; g.fillRect(laneX + laneW * PASS - 1, my - 3, 2, 12);
   // move legend while waiting
-  if (b < 4 || (!inCall && !inResp && !inCount && !B.outcome)) {
+  // (on touch screens the colour-coded dance pad is the legend, and the drawn one would sit under thumbs or robots)
+  if ((b < 4 || (!inCall && !inResp && !inCount && !B.outcome)) && !coarse) {
     const items = MOVES.map(mv => [iconFor(mv), mv === "act" && B.rival.ch.lasso ? "Lasso twirl" : MOVE_NAME[mv]]);
     const iw = Math.min(118, (laneW) / 5);
     items.forEach(([mv, name], i) => {
