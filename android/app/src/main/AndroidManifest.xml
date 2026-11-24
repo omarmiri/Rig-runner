@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- The game itself is bundled and runs offline. The network is only for ads and the ad
-         settings pulled from Supabase (the Ads SDK adds INTERNET and ACCESS_NETWORK_STATE). -->
+    <!-- No permissions: the game is bundled and runs offline. A build with ads
+         (bb.adsEnabled=true) gets INTERNET and the ad permissions from the Ads SDK. -->
 
     <!-- Controllers and touch are both optional: phones, tablets, TV boxes and Chromebooks. -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -18,7 +18,7 @@
         android:supportsRtl="false"
         android:theme="@style/Theme.BoltBeat">
 
-        <!-- Required by the Ads SDK even while ads are off (the app would not start without it). -->
+        <!-- Read by the Ads SDK in a build with ads (it won't start without it); ignored otherwise. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="@string/admob_app_id" />

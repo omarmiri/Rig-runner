@@ -9,8 +9,8 @@ Package `com.opalgames.boltbeat` (debug builds: `com.opalgames.boltbeat.debug`, 
   `app/build.gradle.kts`), leaving out `tests/`, `tools/`, `package.json`, the READMEs and the
   website's service worker. Change the game in `web/`, rebuild the app, done.
 - **Offline.** The game is served from the APK over `https://appassets.androidplatform.net/assets/game/`
-  (`WebViewAssetLoader`), so saves (localStorage) and audio work as on the website. The game itself needs no
-  network; only ads and their settings use it.
+  (`WebViewAssetLoader`), so saves (localStorage) and audio work as on the website. The game needs no network,
+  and the default build has no internet permission at all.
 - **Touch** uses the game's own on-screen pads, sized for phones.
 - **Controllers** (Xbox, PlayStation, Switch Pro, most Bluetooth pads): Android's WebView doesn't pass
   them to the page, so `MainActivity` reads them and hands them to the game as a standard Gamepad API
@@ -28,7 +28,7 @@ Package `com.opalgames.boltbeat` (debug builds: `com.opalgames.boltbeat.debug`, 
 - If the WebView's renderer is killed for memory or crashes, a fresh WebView replaces it instead of the
   app closing (at most 3 times a minute).
 
-## Ads (built, switched OFF)
+## Ads (built, left out of the app by default)
 
 Two ad moments, both driven by the game through `window.BoltBeatAds` (`AdManager.kt` ↔ `web/js/ads.js`):
 
@@ -43,7 +43,12 @@ Two ad moments, both driven by the game through `window.BoltBeatAds` (`AdManager
 
 On the website, or with ads off, `BoltBeatAds` isn't there (or says no) and the game carries straight on.
 
-**Turning ads on:** put `bb.adsEnabled=true` in `local.properties` and rebuild. Debug builds always use
+**Default build = no ads at all.** Without the flag below, the Ads SDK isn't in the app: `src/noads` supplies a
+stand-in `AdManager` that always says no, the app requests **no permissions** (not even internet), makes no
+network calls, and the Play data safety answer is "no data collected". The real code is in `src/ads`.
+
+**Turning ads on:** put `bb.adsEnabled=true` in `local.properties` and rebuild (this adds the Ads SDK, `src/ads`
+and the SDK's permissions, so update the Play data safety form and "Contains ads" when you ship it). Debug builds always use
 Google's test ads; add `bb.adForceTest=true` for test ads in a release build. Before a real release, put
 the real AdMob app ID and the two unit IDs in `res/values/strings.xml` (the app ID there now is Google's
 test ID) and publish a consent (UMP) message in the AdMob console: ads only load after consent is settled.

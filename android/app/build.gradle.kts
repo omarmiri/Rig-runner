@@ -36,7 +36,8 @@ abstract class SyncWebGame : DefaultTask() {
 }
 
 /* Ad switches, read from local.properties (untracked), so testing ads never means editing source:
- *   bb.adsEnabled=true   turn the ad layer on (it is OFF by default for now)
+ *   bb.adsEnabled=true   build WITH ads: adds the Ads SDK and src/ads (it is OFF by default: the
+ *                        default build has no Ads SDK, no ad permissions and no network use at all)
  *   bb.adForceTest=true  use Google's test ads in a release build too (debug builds always do) */
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
@@ -99,6 +100,8 @@ android {
 androidComponents {
     onVariants { variant ->
         variant.sources.assets?.addGeneratedSourceDirectory(syncWebGame, SyncWebGame::outputDir)
+        // The ad layer, or its no-op stand-in with the same AdManager API.
+        variant.sources.java?.addStaticSourceDirectory(if (adsEnabled) "src/ads/java" else "src/noads/java")
     }
 }
 
@@ -107,7 +110,9 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.webkit:webkit:1.11.0")
     // AdMob (interstitial + rewarded interstitial) and UMP consent, same versions as Raptor Rush.
-    // Present but switched off for now: see AdManager and bb.adsEnabled above.
-    implementation("com.google.android.gms:play-services-ads:25.0.0")
-    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
+    // Only in a build made with bb.adsEnabled=true (see above).
+    if (adsEnabled) {
+        implementation("com.google.android.gms:play-services-ads:25.0.0")
+        implementation("com.google.android.ump:user-messaging-platform:4.0.0")
+    }
 }
