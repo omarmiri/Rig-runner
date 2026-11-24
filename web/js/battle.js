@@ -72,7 +72,8 @@ function makeRound(spec, opts = {}) {
 }
 function startBattle() {
   const lead = 1.2;
-  const B = { rival, started: false, start: music.nextBar(music.now(), lead), lat: music.lat(), rounds: [], score: 0, max: 0, outcome: null, done: false, countSched: false };
+  // an "easier boss" reward (see ads.js) lowers what this boss needs until it's beaten
+  const B = { rival, pass: state.easyBoss === state.levelIdx ? ads.easyPass() : PASS, started: false, start: music.nextBar(music.now(), lead), lat: music.lat(), rounds: [], score: 0, max: 0, outcome: null, done: false, countSched: false };
   let cur = 4;
   const skills = (rival.ch.skills || []).slice();
   let specs = levelDef.rounds.slice();
@@ -155,27 +156,28 @@ function updateBattle(dt) {
   }
   if (!B.outcome && b >= B.end + 0.5) {
     B.acc = B.score / B.max;
-    B.outcome = B.acc >= PASS ? "win" : "lose";
+    B.outcome = B.acc >= B.pass ? "win" : "lose";
     if (B.outcome === "win") {
       banner = { text: "You out-danced " + rival.ch.name, sub: `Accuracy ${Math.round(B.acc * 100)}% · the dock is open`, until: state.time + 2.6, color: "#6fe0a0" };
       shatter(rival.ch, rival.pose, rival.x, rival.y + 2, -1, "rival"); rival.shattered = true;
     } else {
-      banner = { text: rival.ch.name + " wins the dance-off", sub: `Accuracy ${Math.round(B.acc * 100)}% · ${Math.round(PASS * 100)}% needed`, until: state.time + 2.6, color: "#ff5e6c" };
+      banner = { text: rival.ch.name + " wins the dance-off", sub: `Accuracy ${Math.round(B.acc * 100)}% · ${Math.round(B.pass * 100)}% needed`, until: state.time + 2.6, color: "#ff5e6c" };
       shatter(ch, pose, pl.x + ch.W / 2, pl.y + ch.H + 2, pl.face, "player"); pl.shattered = true;
     }
   }
   if (B.outcome && b >= B.end + 4.5 && !B.done) {
     B.done = true;
     if (B.outcome === "win") {
-      rival.defeated = true; state.totalAcc.push(B.acc); battle = null; music.intensity = 1;
+      rival.defeated = true; state.totalAcc.push(B.acc); battle = null; music.intensity = 1; state.easyBoss = null;
       document.body.classList.remove("battling");
     } else {
       const acc = Math.round(B.acc * 100);
       if (loseEnergy(ENERGY.battle, pl.x + ch.W / 2, pl.y)) { gameOver(); return; }
       showCard(`<span class="eyebrow neon">Level ${state.levelIdx + 1} · ${levelDef.name}</span><h1>Out-danced</h1>
-        <p>${rival.ch.name} kept the dock and shook you to pieces: <b>-${ENERGY.battle} energy</b> (${state.energy} left, and the bolts went back into the level). You hit ${acc}% of the moves; you need ${Math.round(PASS * 100)}% to win.</p>
-        <div class="actions"><button class="btn" data-act="primary" type="button">Battle again</button>${state.endless ? `<button class="btn ghost" data-act="end" type="button">End run</button>` : ""}<button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
+        <p>${rival.ch.name} kept the dock and shook you to pieces: <b>-${ENERGY.battle} energy</b> (${state.energy} left, and the bolts went back into the level). You hit ${acc}% of the moves; you need ${Math.round(B.pass * 100)}% to win.</p>
+        <div class="actions"><button class="btn" data-act="primary" type="button">Battle again</button>${state.easyBoss !== state.levelIdx && ads.rewardReady() ? `<button class="btn reward" data-act="reward" type="button">Watch an ad · rematch needs ${Math.round(ads.easyPass() * 100)}%</button>` : ""}${state.endless ? `<button class="btn ghost" data-act="end" type="button">End run</button>` : ""}<button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
         () => { play(); battle = null; rival.dance = null; for (let i = debris.length - 1; i >= 0; i--) if (debris[i].owner === "player") debris.splice(i, 1); pl.shattered = false; pl.flash = 0.6; startBattle(); });
+      winCard.querySelector("[data-act=reward]")?.addEventListener("click", () => ads.showRewarded(() => { state.easyBoss = state.levelIdx; cardPrimary(); }));
     }
   }
 }

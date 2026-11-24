@@ -205,7 +205,7 @@ function finishLevel() {
       showCard(`<span class="eyebrow ${dance ? "neon" : ""}">Endless · level ${i + 1} cleared</span><h1>Docked</h1>
         <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Energy</dt><dd>${state.energy} / ${bolts.length}${state.energy >= bolts.length ? " · max" : ""}</dd>${extra}<dt>Best</dt><dd>level ${getBest()}</dd></dl>${note || ""}
         <div class="actions"><button class="btn" data-act="primary" type="button">Next level</button><button class="btn ghost" data-act="end" type="button">End run</button></div>`,
-        () => { state.finished = false; state.levelIdx++; startLevel(); });
+        () => ads.levelBreak(state.levelIdx + 1, () => { state.finished = false; state.levelIdx++; startLevel(); }));
       return;
     }
     const acc = state.totalAcc[state.totalAcc.length - 1] || 0;
@@ -216,7 +216,7 @@ function finishLevel() {
         <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Energy</dt><dd>${state.energy} / ${bolts.length}${state.energy >= bolts.length ? " · max" : ""}</dd><dt>Dance</dt><dd>${Math.round(acc * 100)}% against ${rival ? rival.ch.name : "the rival"}</dd></dl>
         <p>Next: ${nxt.name}, ${nxt.bpm} BPM. ${nxt.clone ? "The final rival is waiting: your own dark clone." : nxt.boss ? "A hybrid boss guards the next dock." : "The routines get longer and faster."}</p>
         <div class="actions"><button class="btn" data-act="primary" type="button">Next level</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
-        () => { state.finished = false; state.levelIdx++; startLevel(); });
+        () => ads.levelBreak(state.levelIdx + 1, () => { state.finished = false; state.levelIdx++; startLevel(); }));
     } else {
       const avg = state.totalAcc.reduce((a, b) => a + b, 0) / Math.max(1, state.totalAcc.length);
       music.intensity = 2;
@@ -224,7 +224,7 @@ function finishLevel() {
         <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts collected</dt><dd>${state.totalBolts}</dd><dt>Dance</dt><dd>${Math.round(avg * 100)}% average accuracy</dd></dl>
         <p>Every rival out-danced, even your own dark clone. The story is done, but the dance floor isn't: endless levels with new bosses start at level ${STORY_LEN + 1}, and the bosses grow every five levels.</p>
         <div class="actions"><button class="btn" data-act="primary" type="button">Keep going</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
-        () => { state.finished = false; state.levelIdx = STORY_LEN; state.runSeed = state.runSeed || (Math.random() * 2147483647) | 0; state.endCache = null; startLevel(); });
+        () => ads.levelBreak(state.levelIdx + 1, () => { state.finished = false; state.levelIdx = STORY_LEN; state.runSeed = state.runSeed || (Math.random() * 2147483647) | 0; state.endCache = null; startLevel(); }));
     }
   }, 900);
 }

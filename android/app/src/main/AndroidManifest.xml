@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- No permissions: the whole game is bundled in the APK and runs offline. -->
+    <!-- The game itself is bundled and runs offline. The network is only for ads and the ad
+         settings pulled from Supabase (the Ads SDK adds INTERNET and ACCESS_NETWORK_STATE). -->
 
     <!-- Controllers and touch are both optional: phones, tablets, TV boxes and Chromebooks. -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -16,6 +17,11 @@
         android:label="@string/app_name"
         android:supportsRtl="false"
         android:theme="@style/Theme.BoltBeat">
+
+        <!-- Required by the Ads SDK even while ads are off (the app would not start without it). -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id" />
 
         <!-- configChanges: rotating or plugging in a controller keeps the running game
              (and its music clock) alive instead of restarting the activity. -->

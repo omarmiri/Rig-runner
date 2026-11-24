@@ -187,6 +187,7 @@ body.battling .hud .keys { visibility: hidden; }
 /* touch pads only while playing: never on the menu or the cards between levels */
 body.menu .touch, body.using-pad .touch { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .card { backdrop-filter: none; } }
+.card .btn.reward { background: transparent; color: var(--neon); border: 1px solid var(--neon); }
 </style>
 </head>
 <body>
@@ -2048,6 +2049,53 @@ function drawDebris() {
 }
 </script>
 <script>
+// Bolt Beat · Ad breaks. The ads themselves live in the Android app (window.BoltBeatAds, a native
+// bridge); on the website, or with ads switched off in the app, every call here is a no-op and the
+// game carries straight on.
+//
+//  - Level break: pressing "Next level" on a level-complete card asks the app for a break. The app
+//    decides (it shows an interstitial every N levels, N pulled from Supabase) and the game moves on
+//    once the ad closes.
+//  - Easier boss: after losing a dance-off, an optional rewarded ad lowers what that boss needs from
+//    60% to 50% (the 50 also comes from the app's config) for the rematch.
+"use strict";
+const ads = {
+  waiting: null,     // { kind, then, timer } while an ad is on screen
+  native() { try { return window.BoltBeatAds || null; } catch (e) { return null; } },
+  call(fn, ...args) { const n = this.native(); try { return n && n[fn] ? n[fn](...args) : null; } catch (e) { return null; } },
+  busy() { return !!this.waiting; },
+
+  // An ad break between levels. `then` always runs exactly once: straight away when no ad shows.
+  levelBreak(levelsCleared, then) {
+    if (this.busy()) return;
+    if (this.call("levelBreak", levelsCleared) === true) this.wait("break", then);
+    else then();
+  },
+
+  // Optional rewarded ad. The button only appears when the app has one loaded.
+  rewardReady() { return this.call("rewardedReady") === true; },
+  easyPass() { const v = Number(this.call("easyPassPercent")); return v >= 30 && v < PASS * 100 ? v / 100 : 0.5; },
+  showRewarded(onReward) {
+    if (this.busy()) return;
+    if (this.call("showRewarded") === true) this.wait("reward", onReward);
+  },
+
+  wait(kind, then) {
+    // Safety net: if the app never reports back (it crashed out of the ad), don't strand the player.
+    const timer = setTimeout(() => this.closed(kind, kind === "break"), 120000);
+    this.waiting = { kind, then, timer };
+  },
+  // Called by the app when the ad closes. For a rewarded ad, `earned` says whether the reward was granted.
+  closed(kind, earned) {
+    const w = this.waiting;
+    if (!w || w.kind !== kind) return;
+    clearTimeout(w.timer); this.waiting = null;
+    if (kind === "break" || earned) w.then();
+  },
+};
+window.bbAdClosed = (kind, earned) => ads.closed(kind, !!earned);
+</script>
+<script>
 // Bolt Beat · Dance battle rules: routines, timing, scoring, boss skills.
 "use strict";
 // ================= Dance battle =================
@@ -2122,7 +2170,8 @@ function makeRound(spec, opts = {}) {
 }
 function startBattle() {
   const lead = 1.2;
-  const B = { rival, started: false, start: music.nextBar(music.now(), lead), lat: music.lat(), rounds: [], score: 0, max: 0, outcome: null, done: false, countSched: false };
+  // an "easier boss" reward (see ads.js) lowers what this boss needs until it's beaten
+  const B = { rival, pass: state.easyBoss === state.levelIdx ? ads.easyPass() : PASS, started: false, start: music.nextBar(music.now(), lead), lat: music.lat(), rounds: [], score: 0, max: 0, outcome: null, done: false, countSched: false };
   let cur = 4;
   const skills = (rival.ch.skills || []).slice();
   let specs = levelDef.rounds.slice();
@@ -2205,27 +2254,28 @@ function updateBattle(dt) {
   }
   if (!B.outcome && b >= B.end + 0.5) {
     B.acc = B.score / B.max;
-    B.outcome = B.acc >= PASS ? "win" : "lose";
+    B.outcome = B.acc >= B.pass ? "win" : "lose";
     if (B.outcome === "win") {
       banner = { text: "You out-danced " + rival.ch.name, sub: `Accuracy ${Math.round(B.acc * 100)}% · the dock is open`, until: state.time + 2.6, color: "#6fe0a0" };
       shatter(rival.ch, rival.pose, rival.x, rival.y + 2, -1, "rival"); rival.shattered = true;
     } else {
-      banner = { text: rival.ch.name + " wins the dance-off", sub: `Accuracy ${Math.round(B.acc * 100)}% · ${Math.round(PASS * 100)}% needed`, until: state.time + 2.6, color: "#ff5e6c" };
+      banner = { text: rival.ch.name + " wins the dance-off", sub: `Accuracy ${Math.round(B.acc * 100)}% · ${Math.round(B.pass * 100)}% needed`, until: state.time + 2.6, color: "#ff5e6c" };
       shatter(ch, pose, pl.x + ch.W / 2, pl.y + ch.H + 2, pl.face, "player"); pl.shattered = true;
     }
   }
   if (B.outcome && b >= B.end + 4.5 && !B.done) {
     B.done = true;
     if (B.outcome === "win") {
-      rival.defeated = true; state.totalAcc.push(B.acc); battle = null; music.intensity = 1;
+      rival.defeated = true; state.totalAcc.push(B.acc); battle = null; music.intensity = 1; state.easyBoss = null;
       document.body.classList.remove("battling");
     } else {
       const acc = Math.round(B.acc * 100);
       if (loseEnergy(ENERGY.battle, pl.x + ch.W / 2, pl.y)) { gameOver(); return; }
       showCard(`<span class="eyebrow neon">Level ${state.levelIdx + 1} · ${levelDef.name}</span><h1>Out-danced</h1>
-        <p>${rival.ch.name} kept the dock and shook you to pieces: <b>-${ENERGY.battle} energy</b> (${state.energy} left, and the bolts went back into the level). You hit ${acc}% of the moves; you need ${Math.round(PASS * 100)}% to win.</p>
-        <div class="actions"><button class="btn" data-act="primary" type="button">Battle again</button>${state.endless ? `<button class="btn ghost" data-act="end" type="button">End run</button>` : ""}<button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
+        <p>${rival.ch.name} kept the dock and shook you to pieces: <b>-${ENERGY.battle} energy</b> (${state.energy} left, and the bolts went back into the level). You hit ${acc}% of the moves; you need ${Math.round(B.pass * 100)}% to win.</p>
+        <div class="actions"><button class="btn" data-act="primary" type="button">Battle again</button>${state.easyBoss !== state.levelIdx && ads.rewardReady() ? `<button class="btn reward" data-act="reward" type="button">Watch an ad · rematch needs ${Math.round(ads.easyPass() * 100)}%</button>` : ""}${state.endless ? `<button class="btn ghost" data-act="end" type="button">End run</button>` : ""}<button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
         () => { play(); battle = null; rival.dance = null; for (let i = debris.length - 1; i >= 0; i--) if (debris[i].owner === "player") debris.splice(i, 1); pl.shattered = false; pl.flash = 0.6; startBattle(); });
+      winCard.querySelector("[data-act=reward]")?.addEventListener("click", () => ads.showRewarded(() => { state.easyBoss = state.levelIdx; cardPrimary(); }));
     }
   }
 }
@@ -2438,7 +2488,7 @@ function finishLevel() {
       showCard(`<span class="eyebrow ${dance ? "neon" : ""}">Endless · level ${i + 1} cleared</span><h1>Docked</h1>
         <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Energy</dt><dd>${state.energy} / ${bolts.length}${state.energy >= bolts.length ? " · max" : ""}</dd>${extra}<dt>Best</dt><dd>level ${getBest()}</dd></dl>${note || ""}
         <div class="actions"><button class="btn" data-act="primary" type="button">Next level</button><button class="btn ghost" data-act="end" type="button">End run</button></div>`,
-        () => { state.finished = false; state.levelIdx++; startLevel(); });
+        () => ads.levelBreak(state.levelIdx + 1, () => { state.finished = false; state.levelIdx++; startLevel(); }));
       return;
     }
     const acc = state.totalAcc[state.totalAcc.length - 1] || 0;
@@ -2449,7 +2499,7 @@ function finishLevel() {
         <dl><dt>Time</dt><dd>${state.runTime.toFixed(2)} s</dd><dt>Energy</dt><dd>${state.energy} / ${bolts.length}${state.energy >= bolts.length ? " · max" : ""}</dd><dt>Dance</dt><dd>${Math.round(acc * 100)}% against ${rival ? rival.ch.name : "the rival"}</dd></dl>
         <p>Next: ${nxt.name}, ${nxt.bpm} BPM. ${nxt.clone ? "The final rival is waiting: your own dark clone." : nxt.boss ? "A hybrid boss guards the next dock." : "The routines get longer and faster."}</p>
         <div class="actions"><button class="btn" data-act="primary" type="button">Next level</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
-        () => { state.finished = false; state.levelIdx++; startLevel(); });
+        () => ads.levelBreak(state.levelIdx + 1, () => { state.finished = false; state.levelIdx++; startLevel(); }));
     } else {
       const avg = state.totalAcc.reduce((a, b) => a + b, 0) / Math.max(1, state.totalAcc.length);
       music.intensity = 2;
@@ -2457,7 +2507,7 @@ function finishLevel() {
         <dl><dt>Total time</dt><dd>${state.totalTime.toFixed(2)} s</dd><dt>Bolts collected</dt><dd>${state.totalBolts}</dd><dt>Dance</dt><dd>${Math.round(avg * 100)}% average accuracy</dd></dl>
         <p>Every rival out-danced, even your own dark clone. The story is done, but the dance floor isn't: endless levels with new bosses start at level ${STORY_LEN + 1}, and the bosses grow every five levels.</p>
         <div class="actions"><button class="btn" data-act="primary" type="button">Keep going</button><button class="btn ghost" data-act="menu" type="button">Menu</button></div>`,
-        () => { state.finished = false; state.levelIdx = STORY_LEN; state.runSeed = state.runSeed || (Math.random() * 2147483647) | 0; state.endCache = null; startLevel(); });
+        () => ads.levelBreak(state.levelIdx + 1, () => { state.finished = false; state.levelIdx = STORY_LEN; state.runSeed = state.runSeed || (Math.random() * 2147483647) | 0; state.endCache = null; startLevel(); }));
     }
   }, 900);
 }
@@ -2802,11 +2852,11 @@ function drawBattleUI() {
   const judged = B.rounds.reduce((a, rr) => a + rr.moves.filter(m => m.res).length, 0);
   const acc = B.score / B.max;
   g.textAlign = "right"; g.fillStyle = "#c9d3db";
-  g.fillText(`GROOVE ${Math.round(acc * 100)}% · NEED ${Math.round(PASS * 100)}%`, laneX + laneW, top - 10);
+  g.fillText(`GROOVE ${Math.round(acc * 100)}% · NEED ${Math.round(B.pass * 100)}%`, laneX + laneW, top - 10);
   const my = top + laneH + 8;
   g.fillStyle = "rgba(201,211,219,0.15)"; g.fillRect(laneX, my, laneW, 6);
-  g.fillStyle = acc >= PASS ? "#6fe0a0" : "#5ee7ff"; g.fillRect(laneX, my, laneW * Math.min(1, acc), 6);
-  g.fillStyle = "#e9eef2"; g.fillRect(laneX + laneW * PASS - 1, my - 3, 2, 12);
+  g.fillStyle = acc >= B.pass ? "#6fe0a0" : "#5ee7ff"; g.fillRect(laneX, my, laneW * Math.min(1, acc), 6);
+  g.fillStyle = "#e9eef2"; g.fillRect(laneX + laneW * B.pass - 1, my - 3, 2, 12);
   // move legend while waiting
   // (on touch screens the colour-coded dance pad is the legend, and the drawn one would sit under thumbs or robots)
   if ((b < 4 || (!inCall && !inResp && !inCount && !B.outcome)) && !coarse) {

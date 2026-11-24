@@ -36,13 +36,15 @@ import androidx.webkit.WebViewAssetLoader
  *  - leaving the app pauses the run and silences the music;
  *  - controllers are read here and handed to the page as a standard Gamepad API pad
  *    (the WebView does not pass them through itself);
- *  - a crashed or killed WebView renderer is replaced instead of taking the app down.
+ *  - a crashed or killed WebView renderer is replaced instead of taking the app down;
+ *  - ads (AdManager): an interstitial every few levels and an opt-in "easier boss" reward, off for now.
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var root: FrameLayout
     private lateinit var webView: WebView
     private lateinit var assetLoader: WebViewAssetLoader
+    private lateinit var adManager: AdManager
     private var lastBackPress = 0L
     private val rendererDeaths = ArrayDeque<Long>()
 
@@ -63,7 +65,9 @@ class MainActivity : AppCompatActivity() {
         assetLoader = WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
             .build()
+        adManager = AdManager(this) { if (::webView.isInitialized) webView else null }
         createWebView()
+        adManager.start()
 
         getSystemService(InputManager::class.java)?.registerInputDeviceListener(padDeviceListener, null)
 
@@ -104,6 +108,8 @@ class MainActivity : AppCompatActivity() {
             onPageReady = { it.evaluateJavascript(INIT_JS, null) },
             onRendererGone = { dead -> replaceDeadWebView(dead) }
         )
+        // window.BoltBeatAds: level breaks and the easier-boss reward (web/js/ads.js).
+        webView.addJavascriptInterface(adManager.bridge, "BoltBeatAds")
         root.addView(webView)
         webView.loadUrl(GAME_URL)
         webView.requestFocus()
@@ -182,6 +188,7 @@ class MainActivity : AppCompatActivity() {
         webView.onResume()
         webView.evaluateJavascript("window.bbAppShown && window.bbAppShown();", null)
         enableImmersiveMode()
+        adManager.preload()
     }
 
     override fun onDestroy() {

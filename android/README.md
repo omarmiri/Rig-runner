@@ -10,7 +10,7 @@ Package `com.opalgames.boltbeat` (debug builds: `com.opalgames.boltbeat.debug`, 
   website's service worker. Change the game in `web/`, rebuild the app, done.
 - **Offline.** The game is served from the APK over `https://appassets.androidplatform.net/assets/game/`
   (`WebViewAssetLoader`), so saves (localStorage) and audio work as on the website, with no network.
-  The app asks for no permissions.
+  The game needs no network; only ads and their settings use it.
 - **Touch** uses the game's own on-screen pads, sized for phones.
 - **Controllers** (Xbox, PlayStation, Switch Pro, most Bluetooth pads): Android's WebView doesn't pass
   them to the page, so `MainActivity` reads them and hands them to the game as a standard Gamepad API
@@ -23,6 +23,40 @@ Package `com.opalgames.boltbeat` (debug builds: `com.opalgames.boltbeat.debug`, 
 - Immersive full screen, screen kept on, any orientation (portrait or landscape), notch-safe.
 - If the WebView's renderer is killed for memory or crashes, a fresh WebView replaces it instead of the
   app closing (at most 3 times a minute).
+
+## Ads (built, switched OFF)
+
+Two ad moments, both driven by the game through `window.BoltBeatAds` (`AdManager.kt` ↔ `web/js/ads.js`):
+
+- **Level break (interstitial):** when the player presses *Next level* (or *Keep going* after the story),
+  an interstitial shows once every **N cleared levels** and never twice within **M seconds**. The game
+  waits for the ad to close, then starts the next level. If one is due but none has loaded, it shows at
+  the next break instead.
+- **Easier boss (rewarded interstitial, opt-in):** after losing a dance-off, the Out-danced card offers
+  *Watch an ad · rematch needs 50%*. Watching it to the end lowers what that boss needs from 60% to 50%
+  until the player beats it (it carries over a fall, not to the next level). Skipping the ad gives nothing.
+  The button only appears when an ad is loaded.
+
+On the website, or with ads off, `BoltBeatAds` isn't there (or says no) and the game carries straight on.
+
+**Turning ads on:** put `bb.adsEnabled=true` in `local.properties` and rebuild. Debug builds always use
+Google's test ads; add `bb.adForceTest=true` for test ads in a release build. Before a real release, put
+the real AdMob app ID and the two unit IDs in `res/values/strings.xml` (the app ID there now is Google's
+test ID) and publish a consent (UMP) message in the AdMob console: ads only load after consent is settled.
+
+**Settings from Supabase:** `AdConfig.kt` pulls the numbers on each launch and caches them (built-in
+defaults until the first pull, last known values when offline):
+
+| key (`app = 'bolt-beat'`) | default | meaning |
+|---|---|---|
+| `interstitial_every_levels` | 3 | an interstitial after every Nth cleared level (0 = never) |
+| `interstitial_min_interval_sec` | 120 | minimum gap between interstitials |
+| `rewarded_easy_pass_percent` | 50 | what a boss needs after the rewarded ad (normally 60; 30–59 allowed) |
+| `ads_enabled` | true | remote kill switch (the build switch above must be on as well) |
+
+To connect it: run [`supabase/app_config.sql`](supabase/app_config.sql) in the project's SQL editor (it
+creates a read-only-to-the-public `app_config` table with those rows), then put the project URL and anon
+key in `supabase_url` / `supabase_anon_key` in `res/values/strings.xml`. While those are blank nothing is fetched.
 
 ## Build
 
@@ -49,4 +83,4 @@ Install on a phone with USB debugging on: `adb install -r app/build/outputs/apk/
 
 ## Not in yet
 
-Ads, Play Games sign-in and achievements, haptics on hits, translations.
+Play Games sign-in and achievements, haptics on hits, translations.

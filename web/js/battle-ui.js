@@ -102,11 +102,11 @@ function drawBattleUI() {
   const judged = B.rounds.reduce((a, rr) => a + rr.moves.filter(m => m.res).length, 0);
   const acc = B.score / B.max;
   g.textAlign = "right"; g.fillStyle = "#c9d3db";
-  g.fillText(`GROOVE ${Math.round(acc * 100)}% · NEED ${Math.round(PASS * 100)}%`, laneX + laneW, top - 10);
+  g.fillText(`GROOVE ${Math.round(acc * 100)}% · NEED ${Math.round(B.pass * 100)}%`, laneX + laneW, top - 10);
   const my = top + laneH + 8;
   g.fillStyle = "rgba(201,211,219,0.15)"; g.fillRect(laneX, my, laneW, 6);
-  g.fillStyle = acc >= PASS ? "#6fe0a0" : "#5ee7ff"; g.fillRect(laneX, my, laneW * Math.min(1, acc), 6);
-  g.fillStyle = "#e9eef2"; g.fillRect(laneX + laneW * PASS - 1, my - 3, 2, 12);
+  g.fillStyle = acc >= B.pass ? "#6fe0a0" : "#5ee7ff"; g.fillRect(laneX, my, laneW * Math.min(1, acc), 6);
+  g.fillStyle = "#e9eef2"; g.fillRect(laneX + laneW * B.pass - 1, my - 3, 2, 12);
   // move legend while waiting
   // (on touch screens the colour-coded dance pad is the legend, and the drawn one would sit under thumbs or robots)
   if ((b < 4 || (!inCall && !inResp && !inCount && !B.outcome)) && !coarse) {

@@ -1,3 +1,4 @@
+import java.util.Properties
 import javax.inject.Inject
 
 plugins {
@@ -34,6 +35,16 @@ abstract class SyncWebGame : DefaultTask() {
     }
 }
 
+/* Ad switches, read from local.properties (untracked), so testing ads never means editing source:
+ *   bb.adsEnabled=true   turn the ad layer on (it is OFF by default for now)
+ *   bb.adForceTest=true  use Google's test ads in a release build too (debug builds always do) */
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val adsEnabled = (localProps.getProperty("bb.adsEnabled") ?: "false").trim().toBoolean()
+val adForceTest = (localProps.getProperty("bb.adForceTest") ?: "false").trim().toBoolean()
+
 val syncWebGame = tasks.register<SyncWebGame>("syncWebGame") {
     webDir.set(rootProject.layout.projectDirectory.dir("../web"))
 }
@@ -42,12 +53,19 @@ android {
     namespace = "com.opalgames.boltbeat"
     compileSdk = 36
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.opalgames.boltbeat"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
+
+        buildConfigField("boolean", "ADS_ENABLED", adsEnabled.toString())
+        buildConfigField("boolean", "AD_FORCE_TEST", adForceTest.toString())
     }
 
     buildTypes {
@@ -88,4 +106,8 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.webkit:webkit:1.11.0")
+    // AdMob (interstitial + rewarded interstitial) and UMP consent, same versions as Raptor Rush.
+    // Present but switched off for now: see AdManager and bb.adsEnabled above.
+    implementation("com.google.android.gms:play-services-ads:25.0.0")
+    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
 }
