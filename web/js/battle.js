@@ -73,8 +73,12 @@ function makeRound(spec, opts = {}) {
 function startBattle() {
   const lead = 1.2;
   // an "easier boss" reward (see ads.js) lowers what this boss needs until it's beaten
-  const B = { rival, pass: state.easyBoss === state.levelIdx ? ads.easyPass() : PASS, started: false, start: music.nextBar(music.now(), lead), lat: music.lat(), rounds: [], score: 0, max: 0, outcome: null, done: false, countSched: false };
+  const B = { rival, pass: state.easyBoss === state.levelIdx ? ads.easyPass() : PASS, started: false, start: music.nextBar(music.now(), lead), lat: music.lat() + timing.offset(), rounds: [], score: 0, max: 0, outcome: null, done: false, countSched: false };
   let cur = 4;
+  // tap-along warm-up (see timing.js): beats 0-3 count in, 4-11 tap on every beat, 12-15 get ready
+  B.warm = timing.wantsWarmup();
+  if (B.warm) { B.warmTaps = []; cur = WARM_COUNT + WARM_TAPS + 4; }
+  B.deltas = [];                 // where on-target hits land, to fine-tune the timing afterwards
   const skills = (rival.ch.skills || []).slice();
   let specs = levelDef.rounds.slice();
   if (skills.includes("encore")) specs.push(specs[specs.length - 1]);
@@ -105,6 +109,16 @@ function battleInput(move) {
   pl.dance = { move, at: now };
   const hx = pl.x + ch.W / 2, hy = pl.y - 20;
   if (move === "act") burst(hx + 20, pl.y + ch.H * 0.35, 10, "#ffffff", 200, 20);
+  if (B.warm && !B.warmDone) {
+    // warm-up: any move counts; note how far from the nearest beat it landed
+    const k = Math.round((now - B.start) / bl);
+    if (k >= WARM_COUNT && k < WARM_COUNT + WARM_TAPS && !B.warmTaps.some(t => t.k === k)) {
+      const d = now - (B.start + k * bl);
+      if (Math.abs(d) < bl * 0.45) { B.warmTaps.push({ k, d }); pop(hx, hy, "✓", "#6fe0a0", 20); }
+    }
+    music.move(music.now(), move, 0.3);
+    return;
+  }
   let best = null, bd = 1e9;
   for (const r of B.rounds) for (const m of r.moves) {
     if (m.res) continue;
@@ -114,6 +128,7 @@ function battleInput(move) {
   if (!best) { music.move(music.now(), move, 0.18); return; }
   const ad = Math.abs(bd);
   if (best.decoy) { best.res = "miss"; pop(hx, hy, "FAKED OUT", "#ff5e6c"); audio.blip(140, 70, 0.15, "sawtooth", 0.08); return; }
+  if (best.move === move) B.deltas.push(bd);
   if (best.move !== move) { best.res = "miss"; pop(hx, hy, "WRONG", "#ff5e6c"); audio.blip(140, 70, 0.15, "sawtooth", 0.08); }
   else if (ad <= WIN_PERFECT) { best.res = "perfect"; B.score += 2; pop(hx, hy, "PERFECT", "#6fe0a0", 22); music.move(music.now(), move, 0.5); burst(hx, hy + 10, 10, MOVE_COLOR[move], 180, 40); }
   else if (ad <= WIN_GOOD) { best.res = "good"; B.score += 1; pop(hx, hy, bd < 0 ? "GOOD · EARLY" : "GOOD · LATE", "#ffe08a"); music.move(music.now(), move, 0.38); }
@@ -134,6 +149,10 @@ function updateBattle(dt) {
   if (!B.ticks) {
     // intro count + a 3-2-1 before each response, with a high "go" blip on the response downbeat
     B.ticks = [1, 2, 3].map(k => ({ beat: k, f: 880 }));
+    if (B.warm) {
+      for (let k = WARM_COUNT; k < WARM_COUNT + WARM_TAPS; k++) B.ticks.push({ beat: k, f: k % 4 === 0 ? 1320 : 990 });
+      for (const k of [13, 14, 15]) B.ticks.push({ beat: k, f: 880 });
+    }
     for (const r of B.rounds) B.ticks.push({ beat: r.count + 1, f: 880 }, { beat: r.count + 2, f: 880 }, { beat: r.count + 3, f: 880 }, { beat: r.resp, f: 1320 });
   }
   for (const tk of B.ticks) {
@@ -154,7 +173,18 @@ function updateBattle(dt) {
       else { m.res = "miss"; pop(pl.x + ch.W / 2, pl.y - 20, "MISS", "#ff5e6c"); }
     }
   }
+  if (B.warm && !B.warmDone && b >= WARM_COUNT + WARM_TAPS + 0.6) {
+    B.warmDone = true;
+    if (B.warmTaps.length >= 4) {
+      // the median ignores a stray early or late tap; the new offset applies from round 1 on
+      const m = timing.median(B.warmTaps.map(t => t.d)), before = timing.offset(), after = timing.save(before + m);
+      B.lat += after - before;
+      if (state.levelIdx === 0) timing.sessionLevel1 = true;
+      pop(pl.x + ch.W / 2, pl.y - 40, "TIMING SET", "#6fe0a0", 20);
+    } else pop(pl.x + ch.W / 2, pl.y - 40, "NO TAPS · TIMING UNCHANGED", "#ffe08a", 16);
+  }
   if (!B.outcome && b >= B.end + 0.5) {
+    timing.learn(B.deltas);
     B.acc = B.score / B.max;
     B.outcome = B.acc >= B.pass ? "win" : "lose";
     if (B.outcome === "win") {

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.graphics.Color
 import android.hardware.input.InputManager
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -51,6 +52,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // The volume buttons always mean game (media) volume, even in a quiet moment between sounds.
+        volumeControlStream = AudioManager.STREAM_MUSIC
 
         root = FrameLayout(this).apply { setBackgroundColor(Color.parseColor("#0B1018")) }
         setContentView(root)
@@ -110,6 +113,8 @@ class MainActivity : AppCompatActivity() {
         )
         // window.BoltBeatAds: level breaks and the easier-boss reward (web/js/ads.js).
         webView.addJavascriptInterface(adManager.bridge, "BoltBeatAds")
+        // window.BoltBeatAudio: which output is playing, so dance-off timing is kept per output.
+        webView.addJavascriptInterface(AudioRouteBridge(this), "BoltBeatAudio")
         root.addView(webView)
         webView.loadUrl(GAME_URL)
         webView.requestFocus()

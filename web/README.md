@@ -86,3 +86,15 @@ The suite checks that the page loads cleanly, every story level can be finished 
 ```
 python3 tools/build-single.py            # writes dist/bolt-beat.html
 ```
+
+## Dance-off timing (calibration)
+
+Dance-offs judge taps against the music clock minus the audio latency the browser reports, plus a
+saved per-device offset (`js/timing.js`, stored as `rigrunner.timing.<output>`):
+
+- **Warm-up:** level 1's dance-off (once per session), and the first dance-off on any output that has
+  never been calibrated, opens with an 8-beat tap-along over a metronome click. The median tap offset
+  becomes the saved offset, applied from round 1.
+- **Ongoing:** after every dance-off, the median timing of correct-move hits nudges the offset (60% of
+  the way, at most 50 ms per battle).
+- Level 1 also shows tutorial captions (watch the routine, then copy it on the beat).

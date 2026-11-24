@@ -53,15 +53,30 @@ function drawBattleUI() {
   }
   g.fillStyle = "rgba(10,14,24,0.78)"; g.fillRect(laneX, top, laneW, laneH);
   g.strokeStyle = "rgba(201,211,219,0.2)"; g.lineWidth = 1; g.strokeRect(laneX + 0.5, top + 0.5, laneW - 1, laneH - 1);
+  const warming = B.warm && b < WARM_COUNT + WARM_TAPS + 0.6;
+  if (warming) {
+    // warm-up lane: one marker per beat, lit when tapped, and a playhead across them
+    const span = WARM_TAPS, x0 = laneX + pad, xw = laneW - pad * 2, y = top + laneH / 2;
+    for (let i = 0; i < span; i++) {
+      const k = WARM_COUNT + i, x = x0 + ((i + 0.5) / span) * xw, hit = B.warmTaps.some(t => t.k === k);
+      g.beginPath(); g.arc(x, y, 13, 0, Math.PI * 2);
+      g.fillStyle = hit ? "#6fe0a0" : "rgba(201,211,219,0.12)"; g.fill();
+      g.lineWidth = 2; g.strokeStyle = hit ? "#6fe0a0" : (k % 4 === 0 ? "#e9eef2" : "rgba(201,211,219,0.5)"); g.stroke();
+    }
+    if (b >= WARM_COUNT - 0.5) {
+      const x = x0 + Math.max(0, Math.min(1, (b - WARM_COUNT + 0.5) / span)) * xw;
+      g.fillStyle = "#5ee7ff"; g.fillRect(x - 1.5, top + 2, 3, laneH - 4);
+    }
+  }
   // beat grid
-  for (let i = 0; i <= r.beats; i++) {
+  if (!warming) for (let i = 0; i <= r.beats; i++) {
     const x = laneX + pad + (i / r.beats) * (laneW - pad * 2);
     g.fillStyle = i % 4 === 0 ? "rgba(201,211,219,0.35)" : "rgba(201,211,219,0.15)"; g.fillRect(x, top + 8, 1, laneH - 16);
   }
   const inCall = b >= r.call && b < r.count, inCount = b >= r.count && b < r.resp, inResp = b >= r.resp && b < r.resp + r.beats;
   const ghosting = B.skills && B.skills.includes("ghost") && b >= r.count;
   for (const m of r.moves) {
-    if (!m.shown) continue;
+    if (!m.shown || warming) continue;
     if (m.hidden && b < r.count) continue;
     if ((ghosting && !m.res && !m.decoy) || m.decoy) {
       const x = laneX + pad + (m.off / r.beats) * (laneW - pad * 2), y = top + laneH / 2;
@@ -78,7 +93,7 @@ function drawBattleUI() {
     const ring = m.res === "perfect" || m.res === "dodged" ? "#6fe0a0" : m.res === "good" ? "#ffe08a" : m.res === "miss" ? "#ff5e6c" : null;
     moveIcon(g, iconFor(m.move), x, top + laneH / 2, 38, m.res === "miss" ? 0.45 : 1, ring);
   }
-  if (inCall || inResp) {
+  if ((inCall || inResp) && !warming) {
     const p = (b - (inCall ? r.call : r.resp)) / r.beats;
     const x = laneX + pad + p * (laneW - pad * 2);
     g.fillStyle = inCall ? "#ff5ec8" : "#5ee7ff"; g.fillRect(x - 1.5, top + 2, 3, laneH - 4);
@@ -96,20 +111,49 @@ function drawBattleUI() {
   else if (inCount) label = `Round ${ri + 1} · your turn: copy the moves on the beat`;
   else if (inResp) label = `Round ${ri + 1} · your turn, copy it on the beat`;
   else label = B.outcome ? (B.outcome === "win" ? "Dance-off won" : "Dance-off lost") : `Round ${ri + 1} done`;
-  g.fillStyle = inCall ? "#ff5ec8" : inResp ? "#5ee7ff" : "#c9d3db";
+  if (warming) label = b < WARM_COUNT ? "Warm-up · get ready to tap along" : "Warm-up · tap any move on every beat";
+  else if (B.warm && b < r.call) label = "Timing set · round 1 next: watch first";
+  g.fillStyle = warming && b >= WARM_COUNT ? "#5ee7ff" : inCall ? "#ff5ec8" : inResp ? "#5ee7ff" : "#c9d3db";
   g.fillText(label.toUpperCase(), laneX, top - 10);
+  // level 1 is the tutorial: say what to do in plain words under the track
+  // (small screens: a short version replaces the label line, since below the track is the stage)
+  const small = innerHeight < 500 || innerWidth < 600;
+  let tip = null;
+  if (warming) tip = small ? "Tap any move with each click · sets your timing" : "Listen for the click and tap any move with it. This tunes the game to your speakers or headphones.";
+  else if (state.levelIdx === 0 && !state.endless && ri < 2 && !B.outcome) {
+    if (inCall) tip = small ? "Watch the routine · each arrow is a move" : `Watch: ${B.rival.ch.name} dances a routine. Each arrow is a move. Remember the order.`;
+    else if (inCount || inResp) tip = small ? "Your turn · tap each arrow as the line hits it"
+      : coarse ? "Your turn: tap the matching coloured button as the line reaches each arrow."
+      : "Your turn: press the matching arrow key as the line reaches each arrow.";
+  }
+  if (tip && small) {
+    g.fillStyle = "rgba(10,14,24,0.92)"; g.fillRect(laneX, top - 30, laneW, 26);
+    const txt = tip.toUpperCase();
+    g.textAlign = "left"; g.font = "700 13px 'Chakra Petch', sans-serif";
+    const fs = Math.max(9, Math.min(13, 13 * (laneW - 8) / g.measureText(txt).width));
+    g.font = `700 ${fs.toFixed(1)}px 'Chakra Petch', sans-serif`; g.fillStyle = "#5ee7ff";
+    g.fillText(txt, laneX + 4, top - 12);
+  } else if (tip) {
+    g.textAlign = "left"; g.font = "500 14px 'Chakra Petch', sans-serif"; g.fillStyle = "#e9eef2";
+    const words = tip.split(" "), maxW = laneW - 160; let line = "", ly = top + laneH + 34;
+    for (const w of words) {
+      if (g.measureText(line + w).width > maxW && line) { g.fillText(line.trim(), laneX, ly); line = ""; ly += 18; }
+      line += w + " ";
+    }
+    g.fillText(line.trim(), laneX, ly);
+  }
   // groove meter
   const judged = B.rounds.reduce((a, rr) => a + rr.moves.filter(m => m.res).length, 0);
   const acc = B.score / B.max;
   g.textAlign = "right"; g.fillStyle = "#c9d3db";
-  g.fillText(`GROOVE ${Math.round(acc * 100)}% · NEED ${Math.round(B.pass * 100)}%`, laneX + laneW, top - 10);
+  if (!(tip && small)) g.fillText(`GROOVE ${Math.round(acc * 100)}% · NEED ${Math.round(B.pass * 100)}%`, laneX + laneW, top - 10);
   const my = top + laneH + 8;
   g.fillStyle = "rgba(201,211,219,0.15)"; g.fillRect(laneX, my, laneW, 6);
   g.fillStyle = acc >= B.pass ? "#6fe0a0" : "#5ee7ff"; g.fillRect(laneX, my, laneW * Math.min(1, acc), 6);
   g.fillStyle = "#e9eef2"; g.fillRect(laneX + laneW * B.pass - 1, my - 3, 2, 12);
   // move legend while waiting
   // (on touch screens the colour-coded dance pad is the legend, and the drawn one would sit under thumbs or robots)
-  if ((b < 4 || (!inCall && !inResp && !inCount && !B.outcome)) && !coarse) {
+  if ((b < 4 || (!inCall && !inResp && !inCount && !B.outcome)) && !coarse && !(tip && !small)) {
     const items = MOVES.map(mv => [iconFor(mv), mv === "act" && B.rival.ch.lasso ? "Lasso twirl" : MOVE_NAME[mv]]);
     const iw = Math.min(118, (laneW) / 5);
     items.forEach(([mv, name], i) => {
@@ -140,7 +184,11 @@ function drawBattleUI() {
     g.fillText(txt, bx, y + h / 2 + fs * 0.36);
     g.shadowBlur = 0; g.globalAlpha = 1;
   };
-  if (b >= 0 && b < 4) { const n = Math.floor(b); big(["GET READY", "3", "2", "1"][n], "#ff5ec8", b - n); }
+  if (B.warm) {
+    if (b >= 0 && b < WARM_COUNT) { const n = Math.floor(b); big(["TAP ALONG", "3", "2", "1"][n], "#5ee7ff", b - n); }
+    const g0 = WARM_COUNT + WARM_TAPS;
+    if (b >= g0 && b < g0 + 4) { const n = Math.floor(b - g0); big(["GET READY", "3", "2", "1"][n], "#ff5ec8", b - g0 - n); }
+  } else if (b >= 0 && b < 4) { const n = Math.floor(b); big(["GET READY", "3", "2", "1"][n], "#ff5ec8", b - n); }
   for (const rr of B.rounds) {
     if (b >= rr.count && b < rr.resp) { const n = Math.floor(b - rr.count); badge(["YOUR TURN", "3", "2", "1"][n], "#5ee7ff", b - rr.count - n); }
     else if (b >= rr.resp && b < rr.resp + 1) badge("GO!", "#6fe0a0", b - rr.resp);

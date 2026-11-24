@@ -20,6 +20,10 @@ Package `com.opalgames.boltbeat` (debug builds: `com.opalgames.boltbeat.debug`, 
   This calls `window.bbBack()` in `web/js/input.js`.
 - **Leaving the app** pauses the run and silences the music (`window.bbAppHidden()`); the website does
   the same when its tab is hidden.
+- **Dance-off timing per audio output.** `AudioRouteBridge` tells the game whether sound goes to the
+  speaker, wired, USB or Bluetooth headphones (`window.BoltBeatAudio`), and `web/js/timing.js` keeps a
+  separate tap-along calibration for each, so switching to Bluetooth doesn't make every hit "late".
+- The volume buttons always control the game's (media) volume.
 - Immersive full screen, screen kept on, any orientation (portrait or landscape), notch-safe.
 - If the WebView's renderer is killed for memory or crashes, a fresh WebView replaces it instead of the
   app closing (at most 3 times a minute).
