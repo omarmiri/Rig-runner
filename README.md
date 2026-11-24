@@ -4,6 +4,7 @@ A browser platformer starring robots built from rig parts: eleven story levels o
 
 - **`web/`** is the source of truth: the game split into a page shell, CSS, scripts by system, and PNG assets, plus automated tests. This is the folder to host on a website. See [`web/README.md`](web/README.md).
 - **`index.html`** in the repo root is a single-file build of `web/` (made with `web/tools/build-single.py`), used for the temporary GitHub Pages site.
+- **`android/`** is the Android app: the `web/` game in a full-screen WebView, offline, with controller and back-button support. It copies `web/` in at build time. See [`android/README.md`](android/README.md).
 
 ## Controls
 - Run: ← → or A / D

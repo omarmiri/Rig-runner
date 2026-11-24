@@ -18,7 +18,8 @@ function frame(now) {
 
 document.body.classList.add("menu");
 // offline support and Home Screen install (only on a real site, not inside an embedded preview)
-if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost") && window.top === window.self)
+// (not in the Android app: it ships every file in the APK, and a cache there would only serve stale copies)
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost") && window.top === window.self && !/BoltBeatAndroid/.test(navigator.userAgent))
   addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 resize();
 Promise.all([hatReady, ...ORDER.map(k => loadChar(CHARS[k]))]).then(() => {

@@ -178,3 +178,24 @@ function padRumble(ms, strength) {
     if (v && v.playEffect) v.playEffect("dual-rumble", { duration: ms, strongMagnitude: strength, weakMagnitude: strength * 0.6 }).catch(() => {});
   }
 }
+
+// ---------- leaving the game: system back button, app or tab in the background ----------
+// The Android app's back button calls this. Returns true when the game used the press,
+// false on the home screen so the app can do its own "press back again to exit".
+window.bbBack = function () {
+  if (state.mode === "play" && state.paused) { resumeGame(); return true; }
+  if (state.mode === "play") { pauseGame(); return true; }
+  if (state.mode === "title" || state.mode === "card") { showHome(); return true; }
+  return false;
+};
+// Switching apps or tabs pauses the run and silences the music until you come back.
+function appHidden() {
+  pauseGame();
+  releaseTouch();
+  if (audio.ctx && audio.ctx.state === "running") audio.ctx.suspend().catch(() => {});
+}
+function appShown() {
+  if (audio.ctx && audio.ctx.state === "suspended" && !audio.muted) audio.ctx.resume().catch(() => {});
+}
+window.bbAppHidden = appHidden; window.bbAppShown = appShown;
+document.addEventListener("visibilitychange", () => { if (document.hidden) appHidden(); else appShown(); });

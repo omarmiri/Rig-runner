@@ -1,0 +1,30 @@
+# The web and Android trees are kept in sync by hand-porting files between them
+# (see MERGE-PLAN.md). Mixed line endings make a cross-repo `diff` useless — one
+# file scored 3,378 changed lines when the real answer was 604. Every text file
+# in both repos is LF, in the index and in the working tree.
+* text=auto eol=lf
+
+# Binary assets: never touch, never diff as text.
+*.glb    binary
+*.gltf   binary
+*.bin    binary
+*.blend  binary
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.exr    binary
+*.tiff   binary
+*.hdr    binary
+*.ktx2   binary
+*.mp3    binary
+*.ogg    binary
+*.wav    binary
+*.ttf    binary
+*.woff   binary
+*.woff2  binary
+
+# Windows shells are the exception: cmd.exe mis-parses labels in an LF .bat, and
+# PowerShell here-strings are line-ending sensitive. These stay CRLF.
+*.bat    text eol=crlf
+*.cmd    text eol=crlf
+*.ps1    text eol=crlf

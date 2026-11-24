@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The game's page background, so there is no white flash before the first frame. -->
+    <color name="bb_bg">#0B1018</color>
+    <color name="bb_icon_bg">#16233A</color>
+</resources>
