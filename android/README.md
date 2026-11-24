@@ -9,8 +9,8 @@ Package `com.opalgames.boltbeat` (debug builds: `com.opalgames.boltbeat.debug`, 
   `app/build.gradle.kts`), leaving out `tests/`, `tools/`, `package.json`, the READMEs and the
   website's service worker. Change the game in `web/`, rebuild the app, done.
 - **Offline.** The game is served from the APK over `https://appassets.androidplatform.net/assets/game/`
-  (`WebViewAssetLoader`), so saves (localStorage) and audio work as on the website, with no network.
-  The game needs no network; only ads and their settings use it.
+  (`WebViewAssetLoader`), so saves (localStorage) and audio work as on the website. The game itself needs no
+  network; only ads and their settings use it.
 - **Touch** uses the game's own on-screen pads, sized for phones.
 - **Controllers** (Xbox, PlayStation, Switch Pro, most Bluetooth pads): Android's WebView doesn't pass
   them to the page, so `MainActivity` reads them and hands them to the game as a standard Gamepad API
