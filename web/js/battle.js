@@ -192,10 +192,10 @@ function updateBattle(dt) {
       const before = timing.offset(), after = timing.save(before + res.delay);
       B.lat += after - before;
       if (state.levelIdx === 0) timing.sessionLevel1 = true;
-      pop(pl.x + ch.W / 2, pl.y - 40, "TIMING SET", "#6fe0a0", 20);
     } else {
       // nothing saved: a device never calibrated gets the warm-up again at its next dance-off
-      pop(pl.x + ch.W / 2, pl.y - 40, res.why === "few" ? "TAP WITH EVERY CLICK · NEXT TIME" : "TAPS TOO UNEVEN · TRY AGAIN NEXT TIME", "#ffe08a", 16);
+      // (the track banner and the robot's tag say so; battle-ui.js)
+      B.warmWhy = res.why;
     }
   }
   if (!B.outcome && b >= B.end + 0.5) {

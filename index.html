@@ -2356,10 +2356,10 @@ function updateBattle(dt) {
       const before = timing.offset(), after = timing.save(before + res.delay);
       B.lat += after - before;
       if (state.levelIdx === 0) timing.sessionLevel1 = true;
-      pop(pl.x + ch.W / 2, pl.y - 40, "TIMING SET", "#6fe0a0", 20);
     } else {
       // nothing saved: a device never calibrated gets the warm-up again at its next dance-off
-      pop(pl.x + ch.W / 2, pl.y - 40, res.why === "few" ? "TAP WITH EVERY CLICK · NEXT TIME" : "TAPS TOO UNEVEN · TRY AGAIN NEXT TIME", "#ffe08a", 16);
+      // (the track banner and the robot's tag say so; battle-ui.js)
+      B.warmWhy = res.why;
     }
   }
   if (!B.outcome && b >= B.end + 0.5) {
@@ -2972,15 +2972,18 @@ function drawBattleUI() {
   else if (inCount) label = `Round ${ri + 1} · your turn: copy the moves on the beat`;
   else if (inResp) label = `Round ${ri + 1} · your turn, copy it on the beat`;
   else label = B.outcome ? (B.outcome === "win" ? "Dance-off won" : "Dance-off lost") : `Round ${ri + 1} done`;
-  if (warming) label = b < WARM_COUNT ? "Warm-up · get ready to tap along" : "Warm-up · tap any move on every beat";
-  else if (B.warm && b < r.call) label = (B.warmOk ? "Timing set" : "Timing unchanged") + " · round 1 next: watch first";
+  const need = WARM_TAPS - WARM_SKIP, counted = Math.max(0, (B.warmTaps ? B.warmTaps.length : 0) - WARM_SKIP);
+  if (warming) label = b < WARM_COUNT ? "Calibrating groove · get ready to tap along"
+    : counted === 0 ? "Calibrating groove · find the beat" : `Calibrating groove · ${Math.min(counted, need)} of ${need}`;
+  else if (B.warm && b < r.call) label = (B.warmOk ? "Groove calibrated" : "Groove not set") + " · round 1 next: watch first";
   g.fillStyle = warming && b >= WARM_COUNT ? "#5ee7ff" : inCall ? "#ff5ec8" : inResp ? "#5ee7ff" : "#c9d3db";
   g.fillText(label.toUpperCase(), laneX, top - 10);
   // level 1 is the tutorial: say what to do in plain words under the track
   // (small screens: a short version replaces the label line, since below the track is the stage)
   const small = innerHeight < 500 || innerWidth < 600;
   let tip = null;
-  if (warming) tip = small ? "Tap any move with each click · sets your timing" : "Listen for the click and tap any move with it. This tunes the game to your speakers or headphones.";
+  if (warming) tip = small ? "Tap any move with each click · calibrating your groove"
+    : "Listen for the click and tap any move with it. Your robot is calibrating its groove to your speakers or headphones.";
   else if (state.levelIdx === 0 && !state.endless && ri < 2 && !B.outcome) {
     if (inCall) tip = small ? "Watch the routine · each arrow is a move" : `Watch: ${B.rival.ch.name} dances a routine. Each arrow is a move. Remember the order.`;
     else if (inCount || inResp) tip = small ? "Your turn · tap each arrow as the line hits it"
@@ -3029,10 +3032,32 @@ function drawBattleUI() {
     g.fillStyle = "rgba(8,12,20,0.8)"; g.fillRect(laneX, top, laneW, laneH);
     g.textAlign = "center"; g.globalAlpha = 1 - k * 0.5;
     g.shadowColor = col; g.shadowBlur = 16;
-    g.fillStyle = col; g.font = `700 ${Math.round(laneH * (0.82 - 0.2 * k))}px 'Chakra Petch', sans-serif`;
-    g.fillText(txt, cxs, top + laneH * 0.5 + laneH * 0.28 * (0.82 - 0.2 * k) / 0.82);
+    let fs = Math.round(laneH * (0.82 - 0.2 * k));
+    g.font = `700 ${fs}px 'Chakra Petch', sans-serif`;
+    const tw = g.measureText(txt).width;
+    if (tw > laneW - 24) { fs = Math.floor(fs * (laneW - 24) / tw); g.font = `700 ${fs}px 'Chakra Petch', sans-serif`; }
+    g.fillStyle = col;
+    g.fillText(txt, cxs, top + laneH * 0.5 + fs * 0.35);
     g.shadowBlur = 0; g.globalAlpha = 1;
   };
+  // above the player's robot while calibrating: a tag with a progress bar that fills with each counted tap
+  if (B.warm && b >= 0 && b < WARM_COUNT + WARM_TAPS + 1) {
+    const done = b >= WARM_COUNT + WARM_TAPS + 0.6;
+    const sx = (pl.x + ch.W / 2 - camX) * zoom, sy = (pl.y - camY) * zoom - 18;
+    const w = 160, h = 30, minY = top + laneH + 12;
+    let x = sx - w / 2, y = sy - h;
+    // no room above the head (short landscape screens): sit beside the robot instead of on it
+    if (y < minY) { x = sx - (ch.W / 2) * zoom - 14 - w; y = sy + ch.H * zoom * 0.25; }
+    x = Math.max(8, Math.min(W - w - 8, x)); y = Math.max(minY, y);
+    const col = done ? (B.warmOk ? "#6fe0a0" : "#ffe08a") : "#5ee7ff";
+    g.fillStyle = "rgba(8,12,20,0.88)"; g.fillRect(x, y, w, h);
+    g.strokeStyle = col; g.lineWidth = 1.5; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    g.textAlign = "center"; g.font = "700 10px 'Chakra Petch', sans-serif"; g.fillStyle = col;
+    g.fillText(done ? (B.warmOk ? "GROOVE CALIBRATED" : "GROOVE NOT SET") : b < WARM_COUNT ? "CALIBRATING GROOVE"
+      : counted === 0 ? "CALIBRATING · FIND THE BEAT" : `CALIBRATING GROOVE · ${Math.min(counted, need)}/${need}`, x + w / 2, y + 13);
+    g.fillStyle = "rgba(201,211,219,0.18)"; g.fillRect(x + 8, y + 19, w - 16, 5);
+    g.fillStyle = col; g.fillRect(x + 8, y + 19, (w - 16) * (done ? 1 : Math.min(1, counted / need)), 5);
+  }
   // the player's count-in sits in a badge under the track, so the moves to copy (and the playhead) stay in view
   const badge = (txt, col, k) => {
     const h = 44, y = top + laneH + 18, fs = Math.round(30 - 6 * k);
@@ -3048,7 +3073,11 @@ function drawBattleUI() {
   if (B.warm) {
     if (b >= 0 && b < WARM_COUNT) { const n = Math.floor(b); big(["TAP ALONG", "3", "2", "1"][n], "#5ee7ff", b - n); }
     const g0 = WARM_COUNT + WARM_TAPS;
-    if (b >= g0 && b < g0 + 4) { const n = Math.floor(b - g0); big(["GET READY", "3", "2", "1"][n], "#ff5ec8", b - g0 - n); }
+    if (b >= g0 && b < g0 + 4) {
+      const n = Math.floor(b - g0);
+      if (n === 0) big(B.warmOk ? "GROOVE CALIBRATED ✓" : B.warmWhy === "few" ? "MORE TAPS NEXT TIME" : "TAPS TOO UNEVEN · NEXT TIME", B.warmOk ? "#6fe0a0" : "#ffe08a", 0);
+      else big(["", "3", "2", "1"][n], "#ff5ec8", b - g0 - n);
+    }
   } else if (b >= 0 && b < 4) { const n = Math.floor(b); big(["GET READY", "3", "2", "1"][n], "#ff5ec8", b - n); }
   for (const rr of B.rounds) {
     if (b >= rr.count && b < rr.resp) { const n = Math.floor(b - rr.count); badge(["YOUR TURN", "3", "2", "1"][n], "#5ee7ff", b - rr.count - n); }
