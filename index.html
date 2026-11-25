@@ -1386,7 +1386,16 @@ const music = {
   off: null,
   now() { return performance.now() / 1000; },
   running() { return !!(audio.ctx && audio.ctx.state === "running" && this.bus); },
-  sync() { if (this.running()) { const o = this.now() - audio.ctx.currentTime; if (this.off === null || Math.abs(o - this.off) > 0.03) this.off = o; } },
+  // Map the page clock onto the audio clock. On slow devices currentTime advances in coarse steps,
+  // so each reading is noisy by a few tens of ms: average it gently instead of snapping to it (snapping
+  // made the beat audibly wobble against the judging clock). A big jump (the context was suspended or
+  // resumed) still re-syncs at once.
+  sync() {
+    if (!this.running()) return;
+    const o = this.now() - audio.ctx.currentTime;
+    if (this.off === null || Math.abs(o - this.off) > 0.25) this.off = o;
+    else this.off += (o - this.off) * 0.05;
+  },
   toAudio(t) { this.sync(); const a = t - (this.off ?? 0); return audio.ctx ? Math.max(a, audio.ctx.currentTime) : a; },
   lat() { return audio.ctx ? (audio.ctx.outputLatency || audio.ctx.baseLatency || 0) : 0; },
   beatLen() { return 60 / this.bpm; },
@@ -1545,7 +1554,7 @@ addEventListener("keydown", e => {
   if (e.code === "Escape" || e.code === "KeyP") { e.preventDefault(); pauseGame(); return; }
   if (battle && battle.started) {
     const m = dancemap[e.code];
-    if (m) { e.preventDefault(); if (!e.repeat) battleInput(m); }
+    if (m) { e.preventDefault(); if (!e.repeat) battleInput(m, inputTime(e)); }
     return;
   }
   const k = keymap[e.code];
@@ -1591,7 +1600,7 @@ const dancePad = document.getElementById("touchDance");
 function syncDancePad(e) {
   e.preventDefault();
   if (e.type === "touchstart" && battle && battle.started && !state.paused)
-    for (const [m] of buttonsUnder(e.changedTouches, "#touchDance", "m")) battleInput(m);
+    for (const [m] of buttonsUnder(e.changedTouches, "#touchDance", "m")) battleInput(m, inputTime(e));
   const now = buttonsUnder(e.touches, "#touchDance", "m");
   dancePad.querySelectorAll("button").forEach(b => b.classList.toggle("on", now.has(b.dataset.m)));
 }
@@ -1601,7 +1610,7 @@ document.querySelectorAll("#touchRun button").forEach(btn => {
   const k = btn.dataset.k;
   btn.addEventListener("mousedown", e => { e.preventDefault(); if (state.mode !== "play") return; if (k === "jump" && !input.jump) pressJump(); input[k] = true; touchHeld.add(k); btn.classList.add("on"); });
 });
-document.querySelectorAll("#touchDance button").forEach(btn => btn.addEventListener("mousedown", e => { e.preventDefault(); if (battle && battle.started) battleInput(btn.dataset.m); }));
+document.querySelectorAll("#touchDance button").forEach(btn => btn.addEventListener("mousedown", e => { e.preventDefault(); if (battle && battle.started) battleInput(btn.dataset.m, inputTime(e)); }));
 addEventListener("mouseup", () => { if (touchHeld.size) releaseTouch(); });
 // no pinch or double-tap zoom anywhere in the game
 for (const ev of ["gesturestart", "gesturechange", "gestureend", "dblclick"]) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
@@ -1612,8 +1621,10 @@ for (const ev of ["gesturestart", "gesturechange", "gestureend", "dblclick"]) do
 // Menus: D-pad moves between buttons, A chooses, B goes back, Start pauses and resumes.
 const padPrev = {};
 let padActive = false;
+let padTime = 0;   // performance-clock ms of the newest pad report (for dance timing)
 function padState() {
   const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+  padTime = Math.max(0, ...pads.map(p => p.timestamp || 0));
   const st = { up: false, down: false, left: false, right: false, a: false, b: false, x: false, start: false, back: false };
   for (const gp of pads) {
     const btn = i => !!(gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > 0.5));
@@ -1633,7 +1644,7 @@ function pollGamepad() {
   if (state.mode === "play" && !state.paused) {
     if (pressed("start")) pauseGame();
     else if (battle && battle.started) {
-      for (const [k, mv] of [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"], ["a", "act"], ["x", "act"]]) if (pressed(k)) battleInput(mv);
+      for (const [k, mv] of [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"], ["a", "act"], ["x", "act"]]) if (pressed(k)) battleInput(mv, inputTime({ timeStamp: padTime }));
     } else {
       for (const k of ["left", "right", "down"]) { if (pressed(k)) input[k] = true; else if (released(k)) input[k] = false; }
       if (pressed("a")) { if (!input.jump) pressJump(); input.jump = true; } else if (released("a")) input.jump = false;
@@ -2238,10 +2249,19 @@ function startBattle() {
     : rcb.boss ? { text: `Boss: ${rcb.name}`, sub: rcb.blurb, until: state.time + 2.2, color: rcb.color }
     : { text: "Dance-off!", sub: `${rcb.name} blocks the dock`, until: state.time + 1.8, color: "#ff5ec8" };
 }
-function battleClock() { return music.now() - battle.lat; }
-function battleInput(move) {
+function battleClock(t = music.now()) { return t - battle.lat; }
+// When the player actually pressed, in seconds on the music clock. Input events carry the time the
+// finger or key went down; on a slow device the handler can run tens of milliseconds later, and by
+// a different amount each tap, which no calibration offset can cancel. Trust the stamp only when it
+// is on the same clock and recent; otherwise fall back to "now".
+function inputTime(e) {
+  const now = music.now();
+  const ts = e && typeof e.timeStamp === "number" ? e.timeStamp / 1000 : NaN;
+  return ts > now - 0.25 && ts <= now + 0.002 ? ts : now;
+}
+function battleInput(move, at) {
   const B = battle; if (!B || B.outcome) return;
-  const now = battleClock(), bl = music.beatLen();
+  const now = battleClock(at), bl = music.beatLen();
   pl.dance = { move, at: now };
   const hx = pl.x + ch.W / 2, hy = pl.y - 20;
   if (move === "act") burst(hx + 20, pl.y + ch.H * 0.35, 10, "#ffffff", 200, 20);

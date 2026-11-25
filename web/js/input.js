@@ -32,7 +32,7 @@ addEventListener("keydown", e => {
   if (e.code === "Escape" || e.code === "KeyP") { e.preventDefault(); pauseGame(); return; }
   if (battle && battle.started) {
     const m = dancemap[e.code];
-    if (m) { e.preventDefault(); if (!e.repeat) battleInput(m); }
+    if (m) { e.preventDefault(); if (!e.repeat) battleInput(m, inputTime(e)); }
     return;
   }
   const k = keymap[e.code];
@@ -78,7 +78,7 @@ const dancePad = document.getElementById("touchDance");
 function syncDancePad(e) {
   e.preventDefault();
   if (e.type === "touchstart" && battle && battle.started && !state.paused)
-    for (const [m] of buttonsUnder(e.changedTouches, "#touchDance", "m")) battleInput(m);
+    for (const [m] of buttonsUnder(e.changedTouches, "#touchDance", "m")) battleInput(m, inputTime(e));
   const now = buttonsUnder(e.touches, "#touchDance", "m");
   dancePad.querySelectorAll("button").forEach(b => b.classList.toggle("on", now.has(b.dataset.m)));
 }
@@ -88,7 +88,7 @@ document.querySelectorAll("#touchRun button").forEach(btn => {
   const k = btn.dataset.k;
   btn.addEventListener("mousedown", e => { e.preventDefault(); if (state.mode !== "play") return; if (k === "jump" && !input.jump) pressJump(); input[k] = true; touchHeld.add(k); btn.classList.add("on"); });
 });
-document.querySelectorAll("#touchDance button").forEach(btn => btn.addEventListener("mousedown", e => { e.preventDefault(); if (battle && battle.started) battleInput(btn.dataset.m); }));
+document.querySelectorAll("#touchDance button").forEach(btn => btn.addEventListener("mousedown", e => { e.preventDefault(); if (battle && battle.started) battleInput(btn.dataset.m, inputTime(e)); }));
 addEventListener("mouseup", () => { if (touchHeld.size) releaseTouch(); });
 // no pinch or double-tap zoom anywhere in the game
 for (const ev of ["gesturestart", "gesturechange", "gestureend", "dblclick"]) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
@@ -99,8 +99,10 @@ for (const ev of ["gesturestart", "gesturechange", "gestureend", "dblclick"]) do
 // Menus: D-pad moves between buttons, A chooses, B goes back, Start pauses and resumes.
 const padPrev = {};
 let padActive = false;
+let padTime = 0;   // performance-clock ms of the newest pad report (for dance timing)
 function padState() {
   const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+  padTime = Math.max(0, ...pads.map(p => p.timestamp || 0));
   const st = { up: false, down: false, left: false, right: false, a: false, b: false, x: false, start: false, back: false };
   for (const gp of pads) {
     const btn = i => !!(gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > 0.5));
@@ -120,7 +122,7 @@ function pollGamepad() {
   if (state.mode === "play" && !state.paused) {
     if (pressed("start")) pauseGame();
     else if (battle && battle.started) {
-      for (const [k, mv] of [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"], ["a", "act"], ["x", "act"]]) if (pressed(k)) battleInput(mv);
+      for (const [k, mv] of [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"], ["a", "act"], ["x", "act"]]) if (pressed(k)) battleInput(mv, inputTime({ timeStamp: padTime }));
     } else {
       for (const k of ["left", "right", "down"]) { if (pressed(k)) input[k] = true; else if (released(k)) input[k] = false; }
       if (pressed("a")) { if (!input.jump) pressJump(); input.jump = true; } else if (released("a")) input.jump = false;

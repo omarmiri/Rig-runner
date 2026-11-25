@@ -102,10 +102,19 @@ function startBattle() {
     : rcb.boss ? { text: `Boss: ${rcb.name}`, sub: rcb.blurb, until: state.time + 2.2, color: rcb.color }
     : { text: "Dance-off!", sub: `${rcb.name} blocks the dock`, until: state.time + 1.8, color: "#ff5ec8" };
 }
-function battleClock() { return music.now() - battle.lat; }
-function battleInput(move) {
+function battleClock(t = music.now()) { return t - battle.lat; }
+// When the player actually pressed, in seconds on the music clock. Input events carry the time the
+// finger or key went down; on a slow device the handler can run tens of milliseconds later, and by
+// a different amount each tap, which no calibration offset can cancel. Trust the stamp only when it
+// is on the same clock and recent; otherwise fall back to "now".
+function inputTime(e) {
+  const now = music.now();
+  const ts = e && typeof e.timeStamp === "number" ? e.timeStamp / 1000 : NaN;
+  return ts > now - 0.25 && ts <= now + 0.002 ? ts : now;
+}
+function battleInput(move, at) {
   const B = battle; if (!B || B.outcome) return;
-  const now = battleClock(), bl = music.beatLen();
+  const now = battleClock(at), bl = music.beatLen();
   pl.dance = { move, at: now };
   const hx = pl.x + ch.W / 2, hy = pl.y - 20;
   if (move === "act") burst(hx + 20, pl.y + ch.H * 0.35, 10, "#ffffff", 200, 20);

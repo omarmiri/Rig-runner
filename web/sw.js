@@ -1,6 +1,6 @@
 // Bolt Beat service worker: makes the game work offline and installable as a Home Screen app.
 // Bump VERSION whenever you publish changes so players' phones pick up the new files.
-const VERSION = "bolt-beat-2026-11-24c";
+const VERSION = "bolt-beat-2026-11-25a";
 const SHELL = [
   "./",
   "index.html",

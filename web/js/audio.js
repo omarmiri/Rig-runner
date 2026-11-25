@@ -45,7 +45,16 @@ const music = {
   off: null,
   now() { return performance.now() / 1000; },
   running() { return !!(audio.ctx && audio.ctx.state === "running" && this.bus); },
-  sync() { if (this.running()) { const o = this.now() - audio.ctx.currentTime; if (this.off === null || Math.abs(o - this.off) > 0.03) this.off = o; } },
+  // Map the page clock onto the audio clock. On slow devices currentTime advances in coarse steps,
+  // so each reading is noisy by a few tens of ms: average it gently instead of snapping to it (snapping
+  // made the beat audibly wobble against the judging clock). A big jump (the context was suspended or
+  // resumed) still re-syncs at once.
+  sync() {
+    if (!this.running()) return;
+    const o = this.now() - audio.ctx.currentTime;
+    if (this.off === null || Math.abs(o - this.off) > 0.25) this.off = o;
+    else this.off += (o - this.off) * 0.05;
+  },
   toAudio(t) { this.sync(); const a = t - (this.off ?? 0); return audio.ctx ? Math.max(a, audio.ctx.currentTime) : a; },
   lat() { return audio.ctx ? (audio.ctx.outputLatency || audio.ctx.baseLatency || 0) : 0; },
   beatLen() { return 60 / this.bpm; },
