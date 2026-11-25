@@ -93,8 +93,11 @@ Dance-offs judge taps against the music clock minus the audio latency the browse
 saved per-device offset (`js/timing.js`, stored as `rigrunner.timing.<output>`):
 
 - **Warm-up:** level 1's dance-off (once per session), and the first dance-off on any output that has
-  never been calibrated, opens with an 8-beat tap-along over a metronome click. The median tap offset
-  becomes the saved offset, applied from round 1.
-- **Ongoing:** after every dance-off, the median timing of correct-move hits nudges the offset (60% of
+  never been calibrated, opens with a 10-beat tap-along over a metronome click. The first 2 taps are
+  practice; the median of the rest becomes the saved offset, applied from round 1. Taps that are too few
+  (under 5) or too uneven (median deviation over 60 ms) save nothing, and the warm-up comes back next time.
+- **Never early:** sound can only arrive late, so the offset is floored at -30 ms. A player who rushes
+  the warm-up stays early instead of teaching the game that early is on time.
+- **Ongoing:** after every dance-off, the median timing of correct-move hits inside the scoring window nudges the offset (60% of
   the way, at most 50 ms per battle).
 - Level 1 also shows tutorial captions (watch the routine, then copy it on the beat).

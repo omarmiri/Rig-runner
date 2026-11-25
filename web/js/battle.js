@@ -160,7 +160,8 @@ function updateBattle(dt) {
     B.ticks = [1, 2, 3].map(k => ({ beat: k, f: 880 }));
     if (B.warm) {
       for (let k = WARM_COUNT; k < WARM_COUNT + WARM_TAPS; k++) B.ticks.push({ beat: k, f: k % 4 === 0 ? 1320 : 990 });
-      for (const k of [13, 14, 15]) B.ticks.push({ beat: k, f: 880 });
+      const g0 = WARM_COUNT + WARM_TAPS;
+      for (const k of [g0 + 1, g0 + 2, g0 + 3]) B.ticks.push({ beat: k, f: 880 });
     }
     for (const r of B.rounds) B.ticks.push({ beat: r.count + 1, f: 880 }, { beat: r.count + 2, f: 880 }, { beat: r.count + 3, f: 880 }, { beat: r.resp, f: 1320 });
   }
@@ -184,13 +185,18 @@ function updateBattle(dt) {
   }
   if (B.warm && !B.warmDone && b >= WARM_COUNT + WARM_TAPS + 0.6) {
     B.warmDone = true;
-    if (B.warmTaps.length >= 4) {
-      // the median ignores a stray early or late tap; the new offset applies from round 1 on
-      const m = timing.median(B.warmTaps.map(t => t.d)), before = timing.offset(), after = timing.save(before + m);
+    const res = timing.measure(B.warmTaps);
+    B.warmOk = res.ok;
+    if (res.ok) {
+      // applies from round 1 on (saving clamps it: see OFFSET_MIN in timing.js)
+      const before = timing.offset(), after = timing.save(before + res.delay);
       B.lat += after - before;
       if (state.levelIdx === 0) timing.sessionLevel1 = true;
       pop(pl.x + ch.W / 2, pl.y - 40, "TIMING SET", "#6fe0a0", 20);
-    } else pop(pl.x + ch.W / 2, pl.y - 40, "NO TAPS · TIMING UNCHANGED", "#ffe08a", 16);
+    } else {
+      // nothing saved: a device never calibrated gets the warm-up again at its next dance-off
+      pop(pl.x + ch.W / 2, pl.y - 40, res.why === "few" ? "TAP WITH EVERY CLICK · NEXT TIME" : "TAPS TOO UNEVEN · TRY AGAIN NEXT TIME", "#ffe08a", 16);
+    }
   }
   if (!B.outcome && b >= B.end + 0.5) {
     timing.learn(B.deltas);

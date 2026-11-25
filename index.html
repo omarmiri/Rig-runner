@@ -2116,7 +2116,13 @@ window.bbAdClosed = (kind, earned) => ads.closed(kind, !!earned);
 // hits actually land. In the Android app the offset is kept per output (speaker, wired, Bluetooth,
 // USB) via window.BoltBeatAudio; on the website there is one.
 "use strict";
-const WARM_COUNT = 4, WARM_TAPS = 8;      // a 4-beat count-in, then 8 beats to tap along to
+const WARM_COUNT = 4, WARM_TAPS = 10;     // a 4-beat count-in, then 10 beats to tap along to
+const WARM_SKIP = 2;                       // the first taps are the player finding the beat: not measured
+// Sound can only ever arrive LATE, so a measurement that says "early" is the player tapping early,
+// not the device: the offset never goes below this (a little slack for a browser that over-reports
+// its own latency). Without the floor, rushing the warm-up made early taps count as on time.
+const OFFSET_MIN = -0.03, OFFSET_MAX = 0.4;
+const WARM_MAX_SPREAD = 0.06;              // taps scattered wider than this (median deviation) aren't a measurement
 const timing = {
   sessionLevel1: false,                   // level 1's warm-up already ran this session
   route() { try { return (window.BoltBeatAudio && window.BoltBeatAudio.route()) || "default"; } catch (e) { return "default"; } },
@@ -2126,17 +2132,28 @@ const timing = {
     return null;
   },
   calibrated() { return !!this.load(); },
-  offset() { const v = this.load(); return v ? v.offset : 0; },
+  // (clamped on read too, so an offset saved before the floor existed stops rewarding early taps)
+  offset() { const v = this.load(); return v ? Math.max(OFFSET_MIN, Math.min(OFFSET_MAX, v.offset)) : 0; },
   save(offset) {
-    offset = Math.max(-0.15, Math.min(0.5, offset));
+    offset = Math.max(OFFSET_MIN, Math.min(OFFSET_MAX, offset));
     try { localStorage.setItem(this.key(), JSON.stringify({ offset: +offset.toFixed(4), at: Date.now() })); } catch (e) {}
     return offset;
   },
   // Does this dance-off open with the tap-along warm-up?
   wantsWarmup() { return !this.calibrated() || (state.levelIdx === 0 && !state.endless && !this.sessionLevel1); },
   median(a) { const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; },
-  // After a dance-off: move part of the way toward where the player's on-target hits landed.
+  // The warm-up's verdict: the delay to add, or why there isn't one.
+  measure(taps) {
+    const use = taps.slice().sort((a, b) => a.k - b.k).slice(WARM_SKIP).map(t => t.d);
+    if (use.length < 5) return { ok: false, why: "few" };
+    const med = this.median(use), spread = this.median(use.map(d => Math.abs(d - med)));
+    if (spread > WARM_MAX_SPREAD) return { ok: false, why: "spread" };
+    return { ok: true, delay: med };
+  },
+  // After a dance-off: move part of the way toward where the player's good hits landed
+  // (only hits inside the scoring window, so wild misses don't drag it around).
   learn(deltas) {
+    deltas = deltas.filter(d => Math.abs(d) <= WIN_GOOD);
     if (deltas.length < 6) return;
     const m = this.median(deltas);
     if (Math.abs(m) < 0.012) return;
@@ -2307,7 +2324,8 @@ function updateBattle(dt) {
     B.ticks = [1, 2, 3].map(k => ({ beat: k, f: 880 }));
     if (B.warm) {
       for (let k = WARM_COUNT; k < WARM_COUNT + WARM_TAPS; k++) B.ticks.push({ beat: k, f: k % 4 === 0 ? 1320 : 990 });
-      for (const k of [13, 14, 15]) B.ticks.push({ beat: k, f: 880 });
+      const g0 = WARM_COUNT + WARM_TAPS;
+      for (const k of [g0 + 1, g0 + 2, g0 + 3]) B.ticks.push({ beat: k, f: 880 });
     }
     for (const r of B.rounds) B.ticks.push({ beat: r.count + 1, f: 880 }, { beat: r.count + 2, f: 880 }, { beat: r.count + 3, f: 880 }, { beat: r.resp, f: 1320 });
   }
@@ -2331,13 +2349,18 @@ function updateBattle(dt) {
   }
   if (B.warm && !B.warmDone && b >= WARM_COUNT + WARM_TAPS + 0.6) {
     B.warmDone = true;
-    if (B.warmTaps.length >= 4) {
-      // the median ignores a stray early or late tap; the new offset applies from round 1 on
-      const m = timing.median(B.warmTaps.map(t => t.d)), before = timing.offset(), after = timing.save(before + m);
+    const res = timing.measure(B.warmTaps);
+    B.warmOk = res.ok;
+    if (res.ok) {
+      // applies from round 1 on (saving clamps it: see OFFSET_MIN in timing.js)
+      const before = timing.offset(), after = timing.save(before + res.delay);
       B.lat += after - before;
       if (state.levelIdx === 0) timing.sessionLevel1 = true;
       pop(pl.x + ch.W / 2, pl.y - 40, "TIMING SET", "#6fe0a0", 20);
-    } else pop(pl.x + ch.W / 2, pl.y - 40, "NO TAPS · TIMING UNCHANGED", "#ffe08a", 16);
+    } else {
+      // nothing saved: a device never calibrated gets the warm-up again at its next dance-off
+      pop(pl.x + ch.W / 2, pl.y - 40, res.why === "few" ? "TAP WITH EVERY CLICK · NEXT TIME" : "TAPS TOO UNEVEN · TRY AGAIN NEXT TIME", "#ffe08a", 16);
+    }
   }
   if (!B.outcome && b >= B.end + 0.5) {
     timing.learn(B.deltas);
@@ -2897,7 +2920,7 @@ function drawBattleUI() {
     const span = WARM_TAPS, x0 = laneX + pad, xw = laneW - pad * 2, y = top + laneH / 2;
     for (let i = 0; i < span; i++) {
       const k = WARM_COUNT + i, x = x0 + ((i + 0.5) / span) * xw, hit = B.warmTaps.some(t => t.k === k);
-      g.beginPath(); g.arc(x, y, 13, 0, Math.PI * 2);
+      g.beginPath(); g.arc(x, y, Math.min(13, xw / span * 0.38), 0, Math.PI * 2);
       g.fillStyle = hit ? "#6fe0a0" : "rgba(201,211,219,0.12)"; g.fill();
       g.lineWidth = 2; g.strokeStyle = hit ? "#6fe0a0" : (k % 4 === 0 ? "#e9eef2" : "rgba(201,211,219,0.5)"); g.stroke();
     }
@@ -2950,7 +2973,7 @@ function drawBattleUI() {
   else if (inResp) label = `Round ${ri + 1} · your turn, copy it on the beat`;
   else label = B.outcome ? (B.outcome === "win" ? "Dance-off won" : "Dance-off lost") : `Round ${ri + 1} done`;
   if (warming) label = b < WARM_COUNT ? "Warm-up · get ready to tap along" : "Warm-up · tap any move on every beat";
-  else if (B.warm && b < r.call) label = "Timing set · round 1 next: watch first";
+  else if (B.warm && b < r.call) label = (B.warmOk ? "Timing set" : "Timing unchanged") + " · round 1 next: watch first";
   g.fillStyle = warming && b >= WARM_COUNT ? "#5ee7ff" : inCall ? "#ff5ec8" : inResp ? "#5ee7ff" : "#c9d3db";
   g.fillText(label.toUpperCase(), laneX, top - 10);
   // level 1 is the tutorial: say what to do in plain words under the track

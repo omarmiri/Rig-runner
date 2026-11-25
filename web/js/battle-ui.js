@@ -59,7 +59,7 @@ function drawBattleUI() {
     const span = WARM_TAPS, x0 = laneX + pad, xw = laneW - pad * 2, y = top + laneH / 2;
     for (let i = 0; i < span; i++) {
       const k = WARM_COUNT + i, x = x0 + ((i + 0.5) / span) * xw, hit = B.warmTaps.some(t => t.k === k);
-      g.beginPath(); g.arc(x, y, 13, 0, Math.PI * 2);
+      g.beginPath(); g.arc(x, y, Math.min(13, xw / span * 0.38), 0, Math.PI * 2);
       g.fillStyle = hit ? "#6fe0a0" : "rgba(201,211,219,0.12)"; g.fill();
       g.lineWidth = 2; g.strokeStyle = hit ? "#6fe0a0" : (k % 4 === 0 ? "#e9eef2" : "rgba(201,211,219,0.5)"); g.stroke();
     }
@@ -112,7 +112,7 @@ function drawBattleUI() {
   else if (inResp) label = `Round ${ri + 1} · your turn, copy it on the beat`;
   else label = B.outcome ? (B.outcome === "win" ? "Dance-off won" : "Dance-off lost") : `Round ${ri + 1} done`;
   if (warming) label = b < WARM_COUNT ? "Warm-up · get ready to tap along" : "Warm-up · tap any move on every beat";
-  else if (B.warm && b < r.call) label = "Timing set · round 1 next: watch first";
+  else if (B.warm && b < r.call) label = (B.warmOk ? "Timing set" : "Timing unchanged") + " · round 1 next: watch first";
   g.fillStyle = warming && b >= WARM_COUNT ? "#5ee7ff" : inCall ? "#ff5ec8" : inResp ? "#5ee7ff" : "#c9d3db";
   g.fillText(label.toUpperCase(), laneX, top - 10);
   // level 1 is the tutorial: say what to do in plain words under the track
